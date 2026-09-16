@@ -100,6 +100,48 @@ If UCII already satisfies the requirement, use the existing primitive through it
 
 If a genuine primitive is missing, make the smallest reusable correction in UCII core rather than creating hackathon-only alternate authority machinery.
 
+## Objective 0C — UCII Authority Bootstrap / Governance Proof
+
+Status: **COMPLETE — READ-ONLY ARCHITECTURAL PROOF**
+
+The completed inspection established the current UCII authority chain, the
+existing HUMAN governance/recovery contract, the reusable protected lifecycle
+machinery, and the exact missing runtime seam required by this project.
+
+Canonical findings:
+
+- UCII machine/agent identity, credential, authentication, verification,
+  delegated authority, authorization, economic separation, and execution
+  boundaries remain established.
+- HUMAN authentication establishes an authenticated UCII identity but does not
+  automatically establish lifecycle governance authority.
+- UCII already has an identity-scoped controller-authority capability with
+  hash-only persistence and protected verification.
+- protected delegated grant/revoke machinery already exists and should be
+  reused rather than duplicated;
+- UCII's existing HUMAN custody/recovery contract already requires independently
+  established recovery/lifecycle authority and supports OOB confirmation,
+  multiple independently governed credentials, administrators, recovery
+  credentials, stronger factors, and quorum;
+- the inspected runtime does not yet establish the generalized policy-governed
+  relationship between an authenticated HUMAN principal and authority to
+  originate specific lifecycle/governance operations;
+- payment and first-party entitlement remain economically useful but cannot
+  establish governance or action authority; and
+- Voice, AssemblyAI, transcripts, LLM reasoning, authentication, confirmation,
+  OOB challenges, payment, and entitlement must not become alternate authority
+  roots.
+
+The exact reusable implementation seam is therefore a UCII HUMAN lifecycle
+governance authority layer above the existing protected controller lifecycle
+machinery.
+
+Detailed evidence and the factual authority-chain map are recorded in:
+
+`docs/ucii-human-governance-authority-chain.md`
+
+Objective 0C does not implement the missing primitive.
+
 ## Objective 0D — Freeze Human Authority Ceremony contract
 
 Goal: freeze the deterministic ceremony contract only after the UCII authority chain is understood.
