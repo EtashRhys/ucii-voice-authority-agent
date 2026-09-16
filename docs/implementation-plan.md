@@ -23,7 +23,7 @@ Goal: establish a proven engineering checkpoint and make the repository document
 - [x] Verify remote `main` checkpoint.
 - [x] Create clean local checkout.
 - [x] Inspect current concept, architecture, implementation, and demo documents.
-- [ ] Complete and commit the Human Authority Ceremony design upgrade.
+- [x] Complete and commit the Human Authority Ceremony design upgrade.
 
 Acceptance: repository state is known and the canonical project documents reflect the current authority design before implementation begins.
 
@@ -143,6 +143,33 @@ Detailed evidence and the factual authority-chain map are recorded in:
 Objective 0C does not implement the missing primitive.
 
 ## Objective 0D — Freeze Human Authority Ceremony contract
+
+Status: **COMPLETE — CONTRACT FROZEN AND SEMANTICALLY VERIFIED**
+
+Canonical ceremony contract:
+
+`docs/human-authority-ceremony-contract.md`
+
+Completion proof:
+
+- deterministic ceremony states and terminal outcomes defined;
+- operation vocabulary and consequence classes frozen;
+- principal, session, ceremony, operation, and target binding defined;
+- OOB challenge lifecycle and deterministic spoken verification defined;
+- challenge verification explicitly separated from lifecycle authority;
+- AssemblyAI / LLM explicitly excluded as authority sources;
+- bootstrap, governance, recovery, and factor-change boundaries defined;
+- fresh lifecycle and execution authorization requirements defined;
+- entitlement and x402 explicitly separated from authority;
+- Guardian-specific behavior excluded as a Voice dependency;
+- fail-closed and ambiguity behavior defined;
+- proof/provenance and secret-exclusion requirements defined;
+- post-revocation fresh authorization semantics verified;
+- Objective 0C missing-runtime dependency preserved; and
+- cross-document semantic review passed before completion.
+
+Objective 0D freezes the contract only. It does not implement the missing UCII
+HUMAN lifecycle-governance runtime primitive.
 
 Goal: freeze the deterministic ceremony contract only after the UCII authority chain is understood.
 
