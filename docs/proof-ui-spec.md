@@ -4,6 +4,12 @@
 
 **DESIGN CONTRACT — IMPLEMENT AFTER THE REAL ASSEMBLYAI VOICE PATH IS ESTABLISHED**
 
+## Visual concept
+
+![UCII Voice Authority Agent futuristic proof UI concept](assets/ucii-voice-authority-ui-concept.svg)
+
+The concept image above is a design target, not evidence of implemented runtime state. The production UI must render real AssemblyAI and UCII events rather than fabricated dashboard values.
+
 This document defines the judge-facing and user-facing proof UI for the UCII Voice Authority Agent. The UI is not decorative evidence and must not manufacture security state. It renders real AssemblyAI conversation events and real UCII identity, step-up, governance, lifecycle-authorization, delegation, revocation, execution, and provenance state.
 
 Core visual thesis:
