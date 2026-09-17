@@ -1,9 +1,11 @@
 """HTTP application boundary for the UCII Voice Authority Agent."""
 
 import os
+from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 
 ASSEMBLYAI_TOKEN_URL = "https://agents.assemblyai.com/v1/token"
 ASSEMBLYAI_TOKEN_TTL_SECONDS = 300
@@ -12,6 +14,14 @@ app = FastAPI(
     title="UCII Voice Authority Agent",
     version="0.1.0",
 )
+
+INDEX_PATH = Path(__file__).with_name("index.html")
+
+
+@app.get("/", response_class=FileResponse)
+async def index() -> FileResponse:
+    """Serve the minimal browser boundary for the live voice proof."""
+    return FileResponse(INDEX_PATH)
 
 
 @app.get("/health")
