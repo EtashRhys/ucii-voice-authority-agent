@@ -101,6 +101,24 @@ Browser integrations must not expose that long-lived key.
 The selected browser architecture therefore uses a temporary token minted by
 the application backend.
 
+For the browser flow, the temporary token is single-use. The browser obtains a
+fresh token for each new Voice Agent connection and supplies it through the
+WebSocket query parameter:
+
+    wss://agents.assemblyai.com/v1/ws?token=<TEMPORARY_TOKEN>
+
+The temporary token must not be logged, rendered into the proof UI, persisted
+as application evidence, or treated as UCII identity or authority.
+
+After the WebSocket opens, the first client protocol message is
+`session.update`. The application then waits for `session.ready` before sending
+any `input.audio`.
+
+The initial connection-only proof may configure only the minimum agent session
+behavior needed to establish a genuine session. Microphone audio transmission,
+transcript handling, response-audio playback, tool calling, and consequential
+UCII execution remain separate implementation boundaries.
+
 ---
 
 ## 4. Audio Contract
