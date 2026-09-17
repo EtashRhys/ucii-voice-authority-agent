@@ -23,6 +23,16 @@
                 <dt>Microphone</dt>
                 <dd id="microphone-status">NOT STARTED</dd>
 
+                <dt>Microphone input</dt>
+                <dd>
+                    <button id="start-microphone" type="button">
+                        Start Microphone
+                    </button>
+                    <button id="stop-microphone" type="button" disabled>
+                        Stop Microphone
+                    </button>
+                </dd>
+
                 <dt>AssemblyAI session</dt>
                 <dd id="assemblyai-status">NOT CONNECTED</dd>
 
@@ -38,5 +48,109 @@
             Understanding a request does not create authority to execute it.
         </p>
     </main>
+
+    <script>
+        "use strict";
+
+        const microphoneStatus =
+            document.getElementById("microphone-status");
+        const startMicrophoneButton =
+            document.getElementById("start-microphone");
+        const stopMicrophoneButton =
+            document.getElementById("stop-microphone");
+
+        let microphoneStream = null;
+
+        function setMicrophoneState(state) {
+            microphoneStatus.textContent = state;
+        }
+
+        function stopMicrophone() {
+            if (microphoneStream !== null) {
+                for (const track of microphoneStream.getTracks()) {
+                    track.stop();
+                }
+
+                microphoneStream = null;
+            }
+
+            startMicrophoneButton.disabled = false;
+            stopMicrophoneButton.disabled = true;
+            setMicrophoneState("STOPPED");
+        }
+
+        async function startMicrophone() {
+            if (
+                !navigator.mediaDevices ||
+                !navigator.mediaDevices.getUserMedia
+            ) {
+                setMicrophoneState("UNAVAILABLE");
+                return;
+            }
+
+            startMicrophoneButton.disabled = true;
+            stopMicrophoneButton.disabled = true;
+            setMicrophoneState("REQUESTING");
+
+            try {
+                const stream =
+                    await navigator.mediaDevices.getUserMedia({
+                        audio: true,
+                        video: false,
+                    });
+
+                microphoneStream = stream;
+
+                for (const track of stream.getAudioTracks()) {
+                    track.addEventListener(
+                        "ended",
+                        () => {
+                            if (microphoneStream === stream) {
+                                microphoneStream = null;
+                                startMicrophoneButton.disabled = false;
+                                stopMicrophoneButton.disabled = true;
+                                setMicrophoneState("STOPPED");
+                            }
+                        },
+                        { once: true },
+                    );
+                }
+
+                stopMicrophoneButton.disabled = false;
+                setMicrophoneState("LISTENING");
+            } catch (error) {
+                microphoneStream = null;
+                startMicrophoneButton.disabled = false;
+                stopMicrophoneButton.disabled = true;
+
+                if (
+                    error instanceof DOMException &&
+                    (
+                        error.name === "NotAllowedError" ||
+                        error.name === "SecurityError"
+                    )
+                ) {
+                    setMicrophoneState("PERMISSION DENIED");
+                } else if (
+                    error instanceof DOMException &&
+                    error.name === "NotFoundError"
+                ) {
+                    setMicrophoneState("NO DEVICE");
+                } else {
+                    setMicrophoneState("FAILED");
+                }
+            }
+        }
+
+        startMicrophoneButton.addEventListener(
+            "click",
+            startMicrophone,
+        );
+
+        stopMicrophoneButton.addEventListener(
+            "click",
+            stopMicrophone,
+        );
+    </script>
 </body>
 </html>
