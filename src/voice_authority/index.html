@@ -36,6 +36,20 @@
                 <dt>AssemblyAI session</dt>
                 <dd id="assemblyai-status">NOT CONNECTED</dd>
 
+                <dt>AssemblyAI connection</dt>
+                <dd>
+                    <button id="connect-assemblyai" type="button">
+                        Connect AssemblyAI
+                    </button>
+                    <button
+                        id="disconnect-assemblyai"
+                        type="button"
+                        disabled
+                    >
+                        Disconnect AssemblyAI
+                    </button>
+                </dd>
+
                 <dt>Finalized user turn</dt>
                 <dd id="finalized-turn">NONE</dd>
 
@@ -58,11 +72,182 @@
             document.getElementById("start-microphone");
         const stopMicrophoneButton =
             document.getElementById("stop-microphone");
+        const assemblyaiStatus =
+            document.getElementById("assemblyai-status");
+        const connectAssemblyAIButton =
+            document.getElementById("connect-assemblyai");
+        const disconnectAssemblyAIButton =
+            document.getElementById("disconnect-assemblyai");
+
+        const ASSEMBLYAI_WS_URL =
+            "wss://agents.assemblyai.com/v1/ws";
 
         let microphoneStream = null;
+        let assemblyaiSocket = null;
+        let assemblyaiSessionId = null;
 
         function setMicrophoneState(state) {
             microphoneStatus.textContent = state;
+        }
+
+        function setAssemblyAIState(state) {
+            assemblyaiStatus.textContent = state;
+        }
+
+        function resetAssemblyAIConnection() {
+            assemblyaiSocket = null;
+            assemblyaiSessionId = null;
+            connectAssemblyAIButton.disabled = false;
+            disconnectAssemblyAIButton.disabled = true;
+        }
+
+        function disconnectAssemblyAI() {
+            const socket = assemblyaiSocket;
+
+            assemblyaiSocket = null;
+            assemblyaiSessionId = null;
+
+            if (
+                socket !== null &&
+                (
+                    socket.readyState === WebSocket.CONNECTING ||
+                    socket.readyState === WebSocket.OPEN
+                )
+            ) {
+                socket.close(1000, "Client disconnected");
+            }
+
+            connectAssemblyAIButton.disabled = false;
+            disconnectAssemblyAIButton.disabled = true;
+            setAssemblyAIState("DISCONNECTED");
+        }
+
+        async function connectAssemblyAI() {
+            if (assemblyaiSocket !== null) {
+                return;
+            }
+
+            connectAssemblyAIButton.disabled = true;
+            disconnectAssemblyAIButton.disabled = true;
+            setAssemblyAIState("REQUESTING TOKEN");
+
+            let token;
+
+            try {
+                const response = await fetch(
+                    "/assemblyai/token",
+                    {
+                        method: "GET",
+                        cache: "no-store",
+                    },
+                );
+
+                if (!response.ok) {
+                    throw new Error("Temporary token request failed.");
+                }
+
+                const payload = await response.json();
+
+                if (
+                    typeof payload.token !== "string" ||
+                    payload.token.length === 0
+                ) {
+                    throw new Error("Temporary token response was invalid.");
+                }
+
+                token = payload.token;
+            } catch (error) {
+                resetAssemblyAIConnection();
+                setAssemblyAIState("TOKEN FAILED");
+                return;
+            }
+
+            setAssemblyAIState("CONNECTING");
+
+            const socket = new WebSocket(
+                `${ASSEMBLYAI_WS_URL}?token=${encodeURIComponent(token)}`,
+            );
+
+            assemblyaiSocket = socket;
+
+            socket.addEventListener("open", () => {
+                if (assemblyaiSocket !== socket) {
+                    socket.close(1000, "Superseded connection");
+                    return;
+                }
+
+                setAssemblyAIState("INITIALIZING");
+
+                socket.send(
+                    JSON.stringify({
+                        type: "session.update",
+                        session: {
+                            system_prompt:
+                                "You are the conversational voice interface " +
+                                "for the UCII Voice Authority Agent. " +
+                                "Understanding a request does not create " +
+                                "authority to execute it.",
+                        },
+                    }),
+                );
+            });
+
+            socket.addEventListener("message", (event) => {
+                if (assemblyaiSocket !== socket) {
+                    return;
+                }
+
+                let message;
+
+                try {
+                    message = JSON.parse(event.data);
+                } catch (error) {
+                    return;
+                }
+
+                if (message.type === "session.ready") {
+                    if (
+                        typeof message.session_id !== "string" ||
+                        message.session_id.length === 0
+                    ) {
+                        setAssemblyAIState("SESSION INVALID");
+                        socket.close();
+                        return;
+                    }
+
+                    assemblyaiSessionId = message.session_id;
+                    disconnectAssemblyAIButton.disabled = false;
+                    setAssemblyAIState("READY");
+                } else if (message.type === "session.error") {
+                    setAssemblyAIState("SESSION ERROR");
+                }
+            });
+
+            socket.addEventListener("error", () => {
+                if (assemblyaiSocket === socket) {
+                    setAssemblyAIState("CONNECTION FAILED");
+                }
+            });
+
+            socket.addEventListener("close", () => {
+                if (assemblyaiSocket !== socket) {
+                    return;
+                }
+
+                const wasReady = assemblyaiSessionId !== null;
+
+                resetAssemblyAIConnection();
+
+                if (wasReady) {
+                    setAssemblyAIState("DISCONNECTED");
+                } else if (
+                    assemblyaiStatus.textContent !== "SESSION INVALID" &&
+                    assemblyaiStatus.textContent !== "SESSION ERROR" &&
+                    assemblyaiStatus.textContent !== "CONNECTION FAILED"
+                ) {
+                    setAssemblyAIState("CONNECTION CLOSED");
+                }
+            });
         }
 
         function stopMicrophone() {
@@ -150,6 +335,16 @@
         stopMicrophoneButton.addEventListener(
             "click",
             stopMicrophone,
+        );
+
+        connectAssemblyAIButton.addEventListener(
+            "click",
+            connectAssemblyAI,
+        );
+
+        disconnectAssemblyAIButton.addEventListener(
+            "click",
+            disconnectAssemblyAI,
         );
     </script>
 </body>
