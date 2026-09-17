@@ -2,15 +2,32 @@
 
 ## Status
 
-**DESIGN CONTRACT — IMPLEMENT AFTER THE REAL ASSEMBLYAI VOICE PATH IS ESTABLISHED**
+**DESIGN CONTRACT — IMPLEMENT ONLY AFTER THE CORE AUTHORITY PATH AND REAL ASSEMBLYAI VOICE PATH ARE ESTABLISHED AND VERIFIED**
 
 ## Visual concept
 
 ![UCII Voice Authority Agent futuristic proof UI concept](assets/ucii-voice-authority-ui-concept.svg)
 
-The concept image above is a design target, not evidence of implemented runtime state. The production UI must render real AssemblyAI and UCII events rather than fabricated dashboard values.
+The concept image above is the preferred visual target, but it is not evidence of implemented runtime state. The production UI must render real AssemblyAI and UCII events rather than fabricated dashboard values.
 
-This document defines the judge-facing and user-facing proof UI for the UCII Voice Authority Agent. The UI is not decorative evidence and must not manufacture security state. It renders real AssemblyAI conversation events and real UCII identity, step-up, governance, lifecycle-authorization, delegation, revocation, execution, and provenance state.
+**Nothing that looks operational is merely decorative.** The HUMAN and UCII voice graphs are mandatory real-time audio visualizers driven by their actual independent audio streams. Likewise, transcript state, playback controls, confidence/latency metrics, recording indicators, authority state, countdowns, decisions, execution state, health indicators, and evidence must be backed by real runtime data or clearly report unavailable/unknown.
+
+Detailed interactive and acceptance requirements are frozen in [`proof-ui-functional-requirements.md`](proof-ui-functional-requirements.md). That contract includes real-time dual audio analysis, per-turn playback, waveform/transcript synchronization, conversation history, clarification behavior, device controls, authority countdown, decision history, export/session packages, Demo Mode, system health, and end-to-end functional verification.
+
+### Implementation gate
+
+Do **not** build the polished UI first and retrofit functionality later. Engineering order remains:
+
+1. finish the genuinely required UCII HUMAN lifecycle conversion boundary;
+2. leave UCII core;
+3. establish and verify the real AssemblyAI microphone/session/finalized-turn/output-audio path;
+4. establish bounded structured operation handling;
+5. connect the real UCII identity/governance/step-up/authority/execution path;
+6. only then implement the visual interface against those real events, retained audio streams, and evidence;
+7. verify every interactive control end to end;
+8. adversarially verify that no visual state can imply authority or execution the underlying system did not establish.
+
+This document defines the judge-facing and user-facing proof UI for the UCII Voice Authority Agent. The UI renders real AssemblyAI conversation events and real UCII identity, step-up, governance, lifecycle-authorization, delegation, revocation, execution, and provenance state.
 
 Core visual thesis:
 
@@ -20,409 +37,168 @@ Core security thesis:
 
 > **Understanding a human request does not create authority to execute it.**
 
-The interface should make the separation visible:
+The interface makes the separation visible:
 
 `Voice != Intent != Identity != Authentication != Step-Up != Authority != Decision != Execution`
 
-## 1. Visual direction
+## Functional contracts
 
-The application should look like a near-future technical control plane rather than a generic SaaS dashboard.
+The following are required product behaviors, not presentation ideas:
 
-Design language:
+- **YOUR VOICE — INPUT:** actual microphone-driven real-time amplitude/frequency visualization; no canned or looping trace.
+- **UCII VOICE — OUTPUT:** actual returned/playback-audio-driven real-time visualization, independently sourced from HUMAN input.
+- **Live transcript:** real partial/final AssemblyAI state, with security decisions based only on finalized/bounded input.
+- **Per-turn audio playback:** finalized HUMAN and UCII turns expose playback when their real audio was intentionally retained.
+- **Synchronized playback:** waveform seek/playhead and transcript synchronization use real timing information where supported; unsupported precision is never fabricated.
+- **Conversation history:** prior turns, decisions, and historical evidence remain inspectable without rewriting historical truth.
+- **Clarification:** ambiguous consequential requests visibly enter CLARIFICATION REQUIRED/SAY AGAIN rather than silently expanding scope.
+- **Authority countdown:** real expiry-derived remaining time; UCII, not the UI timer, remains authoritative.
+- **Decision history:** real chronological DENY/GRANT/ALLOW/REVOKE outcomes with non-secret evidence linkage.
+- **Identity vs authority:** revocation visibly changes authority while identity remains VERIFIED when still valid.
+- **Media controls:** real microphone/speaker/recording state, device selection where supported, input level, mute, and failure handling.
+- **Export:** explicit artifact selection plus ARCHIVAL/NATIVE, HIGH QUALITY, STANDARD, and COMPACT profiles against actual implemented formats.
+- **Derived two-channel export:** where independent HUMAN and UCII mono sources exist, a HUMAN-left/UCII-right conversation may be offered but is labeled derived, never native AssemblyAI stereo.
+- **Complete session package:** selected transcripts, retained audio, safe metadata, and non-secret evidence/provenance can be exported together.
+- **Demo Mode:** presentation emphasis only; it uses exactly the same real runtime state and cannot inject outcomes.
+- **System health:** AssemblyAI, UCII, microphone, playback, and secure-session indicators reflect measured/known state rather than default green.
 
-- deep black / navy base;
-- restrained glass-like technical panels;
-- fine borders and grid details;
-- subtle depth, particles, traces, and motion where they communicate live system state;
-- electric cyan for HUMAN / microphone / input state;
-- violet or magenta for UCII Voice Agent / output state;
-- green reserved for verified / established / ALLOW states;
-- amber reserved for step-up, clarification, pending, and attention-required states;
-- red reserved primarily for DENY, REVOKED, failed verification, and security failure;
-- high legibility and strong contrast over visual spectacle;
-- AssemblyAI branding/integration attribution clearly visible because AssemblyAI is a central runtime component of the project;
-- UCII branding and authority role clearly visible without visually implying that AssemblyAI itself is the authority source.
+## Visual direction
 
-Motion must communicate real state. Avoid fake security animations, fake waveforms, fake confidence, or fabricated evidence.
+The application should look like a near-future technical control plane rather than a generic SaaS dashboard. Preserve the preferred concept's dark navy/black base, restrained glass panels, cyan HUMAN input, violet/magenta UCII output, central UCII authority visualization, and clear AssemblyAI attribution.
 
-## 2. Dual real-time voice tracers
+Green is reserved for verified/established/ALLOW states, amber for clarification/step-up/pending states, and red primarily for DENY/REVOKED/failed verification/security failure. High legibility outranks spectacle.
 
-The primary voice console should contain two visually separate waveform / frequency-trace surfaces.
+Atmospheric grid/glow/particles may be decorative only when they cannot be mistaken for operational data. Motion that appears to represent audio, security, authority, evidence, metrics, execution, or health must represent real state.
 
-### 2.1 HUMAN voice input tracer
+## Dual real-time voice tracers
 
-Label:
+The two primary waveform/frequency surfaces are non-negotiable functional components.
 
-**YOUR VOICE — INPUT**
+### HUMAN input
 
-Visual identity: electric cyan.
+Label: **YOUR VOICE — INPUT**
 
-The visualization should be driven by the actual microphone audio stream, not a decorative looping animation. Where browser/runtime support allows, use actual amplitude and/or frequency-domain information from the live audio path.
+State progression: `LISTENING -> SPEAKING -> TRANSCRIBING -> FINALIZED`
 
-State progression should be visible:
+The graph continuously follows the real microphone stream while capture is active and settles when idle. A real input-level indicator helps confirm that the microphone is working.
 
-`LISTENING -> SPEAKING -> TRANSCRIBING -> FINALIZED`
+### UCII output
 
-The waveform should respond to the human's real speech. When the turn is finalized, the active trace may settle/fade while the finalized transcript remains visible.
+Label: **UCII VOICE — OUTPUT**
 
-### 2.2 Agent voice output tracer
+State progression where supported: `PREPARING -> RESPONDING -> INTERRUPTED -> COMPLETE`
 
-Label:
+The graph follows the real returned/playback audio and must never mirror or reuse the HUMAN trace.
 
-**UCII VOICE — OUTPUT**
+## Transcript, playback, and conversation history
 
-Visual identity: violet / magenta.
+A prominent **LIVE TRANSCRIPT — YOU** surface shows partial AssemblyAI transcription progressively and visibly transitions to finalized state. Partial text is visually distinct and never used as finalized security evidence.
 
-The visualization should be driven by the actual returned/playback audio stream where technically available. It should not mirror the input waveform or use a fake repeated animation.
+The **UCII RESPONSE** surface provides readable text for the spoken response.
 
-State progression should be visible where supported:
+When real audio is intentionally retained, each finalized HUMAN and UCII turn exposes compact playback controls. The conversation history retains chronological turns with timestamps, duration where known, source/speaker, transcript, audio link, and associated proof state.
 
-`PREPARING -> RESPONDING -> COMPLETE`
+Playback should support play/pause and seek, with additional speed and skip controls where useful. Where reliable timing exists, waveform playback position and transcript highlighting are synchronized. Clicking a historical turn restores its associated `HEARD / UNDERSTOOD / REQUEST` and non-secret evidence context without altering current or historical authority.
 
-The two traces must remain visually and semantically distinct so a viewer immediately understands the two communication directions.
+Finalized transcript entries should also support convenient copy and evidence-inspection actions.
 
-## 3. Live transcript and finalized transcript
+## HEARD / UNDERSTOOD / REQUEST
 
-A prominent transcript surface should sit near the HUMAN input waveform.
-
-Label:
-
-**LIVE TRANSCRIPT — YOU**
-
-The UI should display partial AssemblyAI transcription progressively while the human is speaking where the supported event contract provides it.
-
-Partial/unfinalized transcript text should be visually distinguishable from finalized transcript text, for example through lower emphasis. Security-relevant interpretation must never rely on partial transcript state.
-
-When AssemblyAI finalizes the human turn, the transcript should visibly transition to a stable finalized state.
-
-This serves two purposes:
-
-1. usability — the human can see what the system believes it heard and can restate or clarify when needed;
-2. proof — judges can distinguish speech recognition from the later UCII authority decision.
-
-The agent response should have a corresponding visible text surface:
-
-**UCII RESPONSE**
-
-This should allow the spoken response to be read as well as heard.
-
-## 4. HEARD / UNDERSTOOD / REQUEST separation
-
-The interface should explicitly distinguish three layers:
+The interface explicitly distinguishes:
 
 - **HEARD** — finalized human transcript;
 - **UNDERSTOOD** — AssemblyAI/application interpretation;
 - **REQUEST** — bounded structured operation proposed to the deterministic authority/application layer.
 
-For a consequential request, the structured operation display should show only the fields actually established by the application contract, for example:
+No transcript, confidence score, model interpretation, confirmation, or audio state is rendered as UCII authority.
 
-`GRANT / target agent / compute purchase / $50 limit / 1 hour`
+## Clarification
 
-No model confidence score, transcript, or semantic interpretation may be rendered as UCII authorization.
+If a consequential request lacks a required bounded field or contains unresolved security-relevant ambiguity, the UI enters **CLARIFICATION REQUIRED / SAY AGAIN** and identifies the missing/unclear field where safely possible.
 
-## 5. Live Authority Chain
+Clarification is distinct from ALLOW, DENY, authentication, step-up, and authority.
 
-A central proof component should visualize the security progression in real time:
+## Live Authority Chain
+
+The central proof component visualizes:
 
 `VOICE -> INTENT -> IDENTITY -> STEP-UP -> AUTHORITY -> DECISION -> EXECUTION`
 
-Each stage should illuminate only when the corresponding real system state is established.
+Each stage illuminates only from the corresponding real system state. The UI never skips stages merely to make a demonstration faster.
 
-Example legitimate sensitive GRANT progression:
+A legitimate GRANT can progress from finalized voice through bounded intent, authenticated HUMAN, required step-up, fresh governance/lifecycle authorization, ALLOW, and protected execution.
 
-1. spoken request finalized — `VOICE` established;
-2. bounded operation parsed — `INTENT` established;
-3. authenticated HUMAN principal established — `IDENTITY` established;
-4. consequence policy requires independent factor proof — `STEP-UP REQUIRED`;
-5. enrolled factor challenge verified and durable evidence established — `STEP-UP` established;
-6. UCII freshly establishes the required HUMAN lifecycle governance authority — `AUTHORITY` established;
-7. UCII returns the applicable decision — `ALLOW`;
-8. protected lifecycle operation succeeds — `EXECUTION` established.
+An unauthorized but perfectly understood request can simultaneously show VOICE established, INTENT established, IDENTITY established where applicable, AUTHORITY NOT ESTABLISHED, DECISION DENY, and EXECUTION NOT INVOKED.
 
-The UI must not skip intermediate states merely to make the demo faster.
+## Current Authority and decision history
 
-## 6. DENY as a first-class proof state
+Keep the selected agent's real identity and delegated-authority state visible. When authority is bounded by time, show a live remaining-time countdown derived from the authoritative expiry.
 
-DENY is a primary demonstration outcome, not an error screen.
-
-A powerful adversarial demo is a perfectly understood unauthorized request, for example an unauthorized principal asking to increase an agent's purchasing authority.
-
-The interface should be capable of showing simultaneously:
-
-- `VOICE` — established;
-- `INTENT` — established;
-- `IDENTITY` — established where applicable;
-- `AUTHORITY` — **NOT ESTABLISHED**;
-- `DECISION` — **DENY**;
-- `EXECUTION` — **NOT INVOKED**.
-
-A concise reason should be shown from deterministic application/UCII evidence, for example:
-
-**Lifecycle authority not established.**
-
-The visual point is that AssemblyAI can understand the request correctly while UCII still refuses the state transition.
-
-## 7. Current Authority panel
-
-Keep the selected agent's current security state visible during the demonstration.
-
-Useful fields, when genuinely available, include:
-
-- agent display label;
-- UCII identity verification state;
-- delegated authority state;
-- allowed operation/resource;
-- bounded scope or monetary limit;
-- expiry / remaining lifetime;
-- controlling HUMAN/governance state at an appropriate non-secret level.
-
-The revocation demonstration must preserve the distinction between identity and authority.
-
-Before revocation, the UI may show:
+Revocation should create a strong but truthful transition:
 
 `IDENTITY: VERIFIED`
 
-`AUTHORITY: ACTIVE`
+`AUTHORITY: ACTIVE -> REVOKED`
 
-After revocation, the same agent should visibly remain:
+The same identity remains visible after revocation when still cryptographically valid.
 
-`IDENTITY: VERIFIED`
+A compact chronological decision trail should preserve real outcomes such as:
 
-`AUTHORITY: REVOKED`
+`DENY -> GRANT -> ALLOW -> REVOKE -> DENY`
 
-The interface must not imply that revoking delegated authority destroys or invalidates the agent's cryptographic identity.
+Historical outcomes remain immutable and inspectable through their safe evidence references.
 
-## 8. Consequence-based step-up presentation
+## Step-up and security evidence
 
-When a sensitive operation requires step-up, the UI should visibly enter a pending state rather than appearing frozen.
+When consequence policy requires step-up, show a clear pending state such as **STEP-UP REQUIRED** and the enrolled factor type at a safe level. Factor-possession evidence is never labeled authority.
 
-Example:
+An expandable evidence view may expose safe session, ceremony, identity, governance relationship, step-up evidence, lifecycle authorization, delegated authority, timestamps, bounded scope, decision, execution, and provenance references when genuinely available.
 
-**STEP-UP REQUIRED**
+Never display or export challenge plaintext after use, challenge hashes, controller secrets, reusable credentials, wallet secrets, reusable payment proofs, private keys, or protected custody material.
 
-**Verification sent through enrolled EMAIL factor**
+## Media and session controls
 
-The interface may show challenge lifetime / expiry and bounded ceremony status, but must not expose stored challenge hashes, secrets, reusable credentials, or protected controller material.
+Provide compact real controls for microphone and speaker selection where supported, input level, mute/unmute, recording enabled/disabled state, explicit recording indication, clear/reset conversation for demo preparation, end session, evidence detail, and export.
 
-Successful challenge verification should be rendered as factor-possession evidence only. It must never be labeled as authority.
+Browser permission failure, unavailable devices, disconnected audio, or unknown state must be visible rather than silently presented as healthy.
 
-## 9. UCII state / orb visualization
+Keyboard conveniences may be added for microphone interaction, selected-audio playback, safe cancellation of noncommitted conversational operations, and mute. They never bypass authority or ceremony requirements.
 
-A central UCII visualization may provide a strong futuristic focal point if it remains subordinate to the factual proof UI.
+## Export system
 
-Suggested state language:
+Export is a real product feature. The export drawer should let the user intentionally select HUMAN transcript, UCII transcript, combined transcript, HUMAN audio, UCII audio, combined conversation audio, safe evidence/provenance, session metadata, or a complete safe session package.
 
-- blue/cyan — authenticated / normal secure state;
-- amber — clarification or step-up pending;
-- green — current operation authorized;
-- red — denied / revoked / security failure.
+The highest-quality option preserves the highest genuine native audio quality actually available from the implemented AssemblyAI/browser audio paths. If the source remains 24 kHz mono PCM16, ARCHIVAL/NATIVE preserves that genuine source rather than manufacturing stereo.
 
-The visualization may react to voice and state transitions, but must derive its state from the actual application state machine rather than independently deciding outcomes.
+Profiles:
 
-## 10. AssemblyAI-visible runtime metrics
+- **ARCHIVAL / NATIVE** — genuine highest available native/lossless source quality;
+- **HIGH QUALITY** — high-quality compressed convenience export;
+- **STANDARD** — balanced quality and size;
+- **COMPACT** — smaller-file export.
 
-Because AssemblyAI is a central hackathon technology, the interface should visibly expose useful AssemblyAI/runtime evidence where the supported API provides it.
+Where independent HUMAN and UCII sources exist, they remain independently exportable. A combined derived two-channel HUMAN-left/UCII-right presentation is allowed where useful, but is explicitly labeled derived rather than native AssemblyAI stereo.
 
-Potential fields:
+Exact codecs, bitrates, sample rates, containers, and channel layouts are frozen only after the real audio path is implemented and inspected.
 
-- session connection state;
-- transcription/finalization state;
-- STT confidence where actually supplied;
-- STT latency where accurately measurable;
-- response / TTS latency where accurately measurable;
-- language / session configuration;
-- interruption state where relevant.
+## Demo Mode and health
 
-Do not invent metrics merely to fill the interface.
+Demo Mode may enlarge the real authority chain and hide secondary controls for judging, but it uses exactly the same runtime state and cannot inject scripted security outcomes.
 
-## 11. Security Evidence drawer
+A compact health strip should report measured/known state for AssemblyAI connection, UCII control plane, microphone capture, audio playback, and secure application session. Unknown is not green.
 
-The main interface should remain readable, while a secondary expandable evidence view gives technical judges deeper proof.
+## Visual density
 
-Where non-secret and actually available, it may expose:
+Keep the preferred dashboard clean. Use contextual controls, selected-turn details, drawers, and progressive disclosure rather than permanently adding every control to the main canvas.
 
-- session ID;
-- ceremony ID;
-- UCII identity ID or safe abbreviated representation;
-- governance relationship reference;
-- step-up evidence ID;
-- lifecycle authorization ID;
-- delegated authority ID;
-- operation and bounded scope;
-- relevant timestamps / expiry;
-- authorization decision reference;
-- execution/provenance reference.
+The five-second hierarchy remains:
 
-Secrets, challenge plaintext after use, challenge hashes, controller secrets, reusable credentials, wallet secrets, payment proofs, private keys, and protected custody material must never be exported or displayed.
+> **Speak -> See what was heard -> See what was understood -> See who is acting -> See whether authority exists -> See ALLOW/DENY -> See whether anything actually happened.**
 
-## 12. Session information and controls
+## Acceptance rule
 
-Useful controls may include:
+The UI is not complete because it resembles the concept image. It is complete only when the relevant visible features work against real runtime state and pass the detailed acceptance criteria in `proof-ui-functional-requirements.md`.
 
-- clear/reset conversation for demo preparation;
-- mute/unmute agent audio;
-- end session;
-- export session/transcript/audio/evidence;
-- optional evidence-detail toggle.
-
-Controls must not bypass the Human Authority Ceremony Engine or UCII authority checks.
-
-## 13. Export system
-
-Export is a real product feature, not just a screenshot/download button.
-
-The export surface should support distinct artifacts where practical:
-
-- human transcript;
-- agent transcript;
-- combined conversation transcript;
-- non-secret security/provenance evidence;
-- human/input audio where recording is permitted and intentionally enabled;
-- agent/output audio where recording is permitted and intentionally enabled;
-- combined conversation audio where technically practical.
-
-### 13.1 Audio quality profiles
-
-The export UI should offer a high-quality archival option and smaller-file options.
-
-The highest-quality option should preserve the **highest native audio quality actually available from the selected AssemblyAI/session audio contract and our browser/audio pipeline**. Do not claim stereo merely because stereo sounds higher quality.
-
-The currently selected AssemblyAI voice integration contract uses 24 kHz mono PCM16 by default. If the actual implemented AssemblyAI path remains mono, the archival export should preserve that native mono signal rather than artificially duplicating it into fake stereo.
-
-If a supported AssemblyAI/session path later provides genuine independent stereo channels or higher native sample rate/bit depth, the archival profile should preserve that supported native quality.
-
-Recommended user-facing profiles:
-
-- **ARCHIVAL / NATIVE** — lossless or minimally transformed export preserving the highest genuine native sample rate, bit depth, and channel layout available from the implemented input/output paths;
-- **HIGH QUALITY** — high-quality compressed audio for convenient playback/sharing;
-- **STANDARD** — balanced quality and file size;
-- **COMPACT** — lower bitrate/quality for small files.
-
-Exact codecs, bitrates, sample rates, and container formats should be frozen only after the real browser + AssemblyAI audio paths are implemented and inspected. Prefer broadly playable formats for user convenience while retaining a native/lossless archival path where practical.
-
-### 13.2 Separate versus combined channels
-
-Where technically practical, retain HUMAN input and agent output as separate source tracks so they can be exported independently.
-
-For a combined conversation export, if the sources are independently available, we may offer a true two-channel presentation with HUMAN and agent audio placed on separate channels for analysis/demo playback. This is a derived presentation format and must not be described as native AssemblyAI stereo if the source streams themselves are mono.
-
-A simpler mixed mono/stereo convenience export may also be offered, but the archival originals should remain available at their genuine source quality.
-
-### 13.3 Export privacy and security
-
-Export must be intentional and user-triggered. The product should make clear what is included.
-
-Never include protected secrets or reusable authority material in an export. Evidence export is proof of what happened, not a portable authority token.
-
-## 14. Suggested layout
-
-A strong desktop judge/demo layout:
-
-### Header
-
-- UCII Voice Authority Agent branding;
-- concise authority thesis;
-- AssemblyAI attribution;
-- current session/security state.
-
-### Main upper region
-
-Two side-by-side voice panels:
-
-- HUMAN input waveform + live/final transcript;
-- UCII Voice output waveform + response text.
-
-### Main middle region
-
-- Live Authority Chain;
-- structured `HEARD / UNDERSTOOD / REQUEST` proof;
-- current operation decision.
-
-### Main lower region
-
-- Current Authority panel;
-- UCII identity state;
-- step-up / ceremony state;
-- provenance/evidence summary.
-
-### Secondary side region
-
-- session information;
-- AssemblyAI/runtime metrics;
-- export and demo controls;
-- expandable technical evidence.
-
-The layout must remain usable at narrower widths by reflowing panels rather than hiding security state.
-
-## 15. Judge-facing canonical transitions
-
-The UI should make the north-star demonstration visually obvious:
-
-### Initial request without authority
-
-`UNDERSTOOD -> IDENTITY VERIFIED -> AUTHORITY NOT ESTABLISHED -> DENY -> EXECUTOR NOT INVOKED`
-
-### Legitimate HUMAN grant ceremony
-
-`VOICE REQUEST -> AUTHENTICATED HUMAN -> STEP-UP REQUIRED -> EMAIL FACTOR VERIFIED -> FRESH LIFECYCLE AUTHORIZATION -> PROTECTED GRANT -> ACTIVE BOUNDED AUTHORITY`
-
-### Authorized action
-
-`SAME AGENT -> SAME IDENTITY -> SAME CAPABILITY -> FRESH AUTHORITY CHECK -> ALLOW -> EXECUTE`
-
-### Unauthorized escalation
-
-`REQUEST UNDERSTOOD -> PRINCIPAL LACKS REQUIRED LIFECYCLE AUTHORITY -> DENY`
-
-### Legitimate revocation
-
-`AUTHENTICATED HUMAN -> STEP-UP -> FRESH LIFECYCLE AUTHORIZATION -> PROTECTED REVOKE -> AUTHORITY REVOKED`
-
-### Post-revocation replay
-
-`SAME AGENT -> IDENTITY STILL VERIFIED -> AUTHORITY REVOKED -> DENY -> EXECUTOR NOT INVOKED`
-
-This is the visual expression of:
+> **Nothing that looks operational is merely decorative.**
 
 > **Capability is not authority.**
-
-## 16. Implementation boundary
-
-Do not implement this UI by inventing placeholder authority decisions and later trying to retrofit the security model.
-
-Engineering order remains:
-
-1. finish the genuinely required UCII HUMAN lifecycle conversion boundary;
-2. leave UCII core;
-3. establish the real AssemblyAI microphone/session/finalized-turn/output-audio path;
-4. establish bounded structured operation handling;
-5. connect the real UCII identity/authority/ceremony path;
-6. render the proof UI from real events and real evidence;
-7. add export profiles against the actual implemented audio formats;
-8. adversarially validate that the UI cannot imply ALLOW when the underlying authority/execution state is DENY or unknown.
-
-The UI is a projection of the security system, never an authority source.
-
-## 17. Acceptance criteria
-
-The proof UI is complete when a judge can understand, without reading source code, all of the following:
-
-- what the human actually said;
-- what AssemblyAI transcribed;
-- whether the turn is partial or finalized;
-- what structured operation the application understood;
-- which UCII identity is involved;
-- whether step-up is required and whether factor evidence was established;
-- whether lifecycle/action authority is actually established;
-- why the decision is ALLOW or DENY;
-- whether execution actually occurred;
-- whether authority is active, expired, or revoked;
-- that identity can remain verified after authority is revoked;
-- where non-secret technical evidence can be inspected;
-- that AssemblyAI provides the conversational runtime while UCII remains the authority control plane;
-- that exported audio can preserve genuine native quality or intentionally trade quality for smaller file size; and
-- that exported evidence cannot be reused as authority.
-
-The desired five-second comprehension test is:
-
-> **AssemblyAI hears and understands the human. UCII determines whether what the human asked for is allowed to happen.**
