@@ -465,3 +465,114 @@ current competition requirements, including:
 - sponsor-specific technical constraints.
 
 Only after that verification may Objective 0B be closed.
+
+---
+
+## 15. First Bounded EXECUTE Tool Contract
+
+The first Objective 2 structured-operation vertical slice uses AssemblyAI tool
+calling as the conversational interpretation boundary.
+
+The registered AssemblyAI tool is:
+
+    type: function
+    name: propose_compute_purchase
+
+Its purpose is only to propose the bounded application operation:
+
+    EXECUTE
+    compute.purchase
+
+It does not execute compute purchase.
+
+It does not perform UCII authorization.
+
+It does not establish identity, delegated authority, entitlement, payment, or
+execution permission.
+
+The AssemblyAI registration uses the Voice Agent API flat tool-definition
+shape under `session.tools`:
+
+    {
+        "type": "function",
+        "name": "propose_compute_purchase",
+        "description": "Propose a bounded compute purchase request. This tool does not authorize or execute the purchase.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "quantity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Requested number of compute units."
+                },
+                "unit": {
+                    "type": "string",
+                    "enum": ["compute"],
+                    "description": "Resource unit for this bounded demo operation."
+                }
+            },
+            "required": [
+                "quantity",
+                "unit"
+            ],
+            "additionalProperties": false
+        }
+    }
+
+For the canonical demo utterance:
+
+    Purchase 20 units of compute for this workload.
+
+the intended proposal arguments are:
+
+    {
+        "quantity": 20,
+        "unit": "compute"
+    }
+
+The deterministic application boundary maps a valid call to:
+
+    operation:
+        EXECUTE
+
+    consequence_class:
+        CONSEQUENTIAL
+
+    requested_scope:
+        {
+            "operation": "compute.purchase"
+        }
+
+    requested_parameters:
+        {
+            "quantity": 20,
+            "unit": "compute"
+        }
+
+The application must validate the tool name and every security-relevant
+argument before constructing the structured proposal.
+
+Missing, malformed, unsupported, contradictory, or ambiguous arguments do not
+create a structured executable request.
+
+The tool call remains only a proposal:
+
+    AssemblyAI tool.call
+        !=
+    UCII identity
+        !=
+    delegated authority
+        !=
+    authorization
+        !=
+    entitlement
+        !=
+    payment
+        !=
+    execution
+
+No code path introduced for this tool may directly invoke a consequential
+executor.
+
+`tool.result` handling remains a later runtime unit and must respect the
+verified Voice Agent reply lifecycle.
