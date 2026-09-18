@@ -80,6 +80,8 @@
             document.getElementById("stop-microphone");
         const assemblyaiStatus =
             document.getElementById("assemblyai-status");
+        const finalizedTurn =
+            document.getElementById("finalized-turn");
         const audioChunksSentStatus =
             document.getElementById("audio-chunks-sent");
         const audioBytesSentStatus =
@@ -255,6 +257,15 @@
                     assemblyaiSessionId = message.session_id;
                     disconnectAssemblyAIButton.disabled = false;
                     setAssemblyAIState("READY");
+                } else if (message.type === "transcript.user") {
+                    if (
+                        typeof message.text !== "string" ||
+                        message.text.trim().length === 0
+                    ) {
+                        return;
+                    }
+
+                    finalizedTurn.textContent = message.text;
                 } else if (message.type === "session.error") {
                     setAssemblyAIState("SESSION ERROR");
                 }
