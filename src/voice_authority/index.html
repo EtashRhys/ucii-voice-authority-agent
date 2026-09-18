@@ -226,6 +226,40 @@
                                 "for the UCII Voice Authority Agent. " +
                                 "Understanding a request does not create " +
                                 "authority to execute it.",
+                            tools: [
+                                {
+                                    type: "function",
+                                    name: "propose_compute_purchase",
+                                    description:
+                                        "Propose a bounded compute purchase " +
+                                        "request. This tool does not authorize " +
+                                        "or execute the purchase.",
+                                    parameters: {
+                                        type: "object",
+                                        properties: {
+                                            quantity: {
+                                                type: "integer",
+                                                minimum: 1,
+                                                description:
+                                                    "Requested number of " +
+                                                    "compute units.",
+                                            },
+                                            unit: {
+                                                type: "string",
+                                                enum: ["compute"],
+                                                description:
+                                                    "Resource unit for this " +
+                                                    "bounded demo operation.",
+                                            },
+                                        },
+                                        required: [
+                                            "quantity",
+                                            "unit",
+                                        ],
+                                        additionalProperties: false,
+                                    },
+                                },
+                            ],
                         },
                     }),
                 );
