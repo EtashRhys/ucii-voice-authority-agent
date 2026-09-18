@@ -296,7 +296,13 @@
                                 "You are the conversational voice interface " +
                                 "for the UCII Voice Authority Agent. " +
                                 "Understanding a request does not create " +
-                                "authority to execute it.",
+                                "authority to execute it. " +
+                                "When the user explicitly requests a purchase " +
+                                "of compute units, you must call " +
+                                "propose_compute_purchase with the requested " +
+                                "quantity and unit compute. The tool only " +
+                                "proposes the request; it does not authorize " +
+                                "or execute it.",
                             tools: [
                                 {
                                     type: "function",
