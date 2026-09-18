@@ -12,6 +12,94 @@ Use a bounded workflow:
 
 Avoid building several subsystems at once. Preserve a working checkpoint after each proven objective.
 
+
+## 9.5+ demo critical path
+
+The internal quality target is a judge-ready build capable of earning **9.5/10 or better**. This is a quality target, not a predicted score.
+
+From this checkpoint forward, the governing completion path is:
+
+**DENY → GRANT WITH STEP-UP → EXECUTE → REVOKE → DENY AGAIN**
+
+This end-to-end lifecycle takes precedence over tool breadth, secondary voice scenarios, cosmetic polish, and optional features.
+
+### Critical-path requirements
+
+- [ ] Freeze one deterministic, safe, visibly consequential action.
+- [ ] Voice input produces the stable structured proposal through real AssemblyAI runtime integration.
+- [ ] Bind the proposal to real UCII identity state.
+- [ ] Perform a fresh UCII authority check and prove initial DENY.
+- [ ] Prove the executor did not run on DENY.
+- [ ] Perform the protected human GRANT ceremony through the real supported lifecycle boundary.
+- [ ] Require real request-bound step-up evidence where the frozen ceremony policy requires it.
+- [ ] Preserve the rule that successful challenge verification is evidence, not lifecycle authority.
+- [ ] Repeat the same consequential request.
+- [ ] Perform a fresh UCII authority check and obtain genuine ALLOW.
+- [ ] Make the executor structurally unreachable through the normal path until ALLOW.
+- [ ] Execute the deterministic consequential action and record evidence.
+- [ ] Revoke the exact delegation through the protected lifecycle boundary.
+- [ ] Repeat the same consequential request again.
+- [ ] Perform a fresh post-revocation authority check and prove DENY.
+- [ ] Prove the executor did not run after revocation.
+- [ ] Surface every meaningful transition through live UI state derived from the real path.
+- [ ] Attach provenance/evidence references to the judge-visible transitions.
+
+### Demo-completion gate
+
+The project is not demo-complete because microphone capture, AssemblyAI, UCII verification, grant/revoke, executor, or UI work independently.
+
+Demo completion requires one repeatable end-to-end run using real AssemblyAI input, real UCII identity/authority state, a real protected grant with required step-up, executor invocation only after genuine UCII ALLOW, real revocation, and a fresh post-revocation DENY.
+
+Mocked identity, authority, authorization, grant, revocation, or judge-facing state do not satisfy this gate.
+
+A deterministic simulator may be used for the final consequential side effect when that makes the demonstration safer and more reliable, provided the authorization and lifecycle boundaries controlling it are real and the simulator is identified accurately.
+
+### Live proof UI requirements
+
+The judge-facing console must update from actual runtime state and expose at minimum:
+
+- [ ] finalized voice request / structured proposal;
+- [ ] identity verified / not verified;
+- [ ] delegated authority state and applicable scope;
+- [ ] governance/lifecycle ceremony state where relevant;
+- [ ] step-up required / verified / failed where applicable;
+- [ ] policy/authorization decision;
+- [ ] explicit ALLOW or DENY and reason;
+- [ ] executor invoked / not invoked;
+- [ ] execution result;
+- [ ] provenance/evidence reference.
+
+DENY states must be visually unmistakable.
+
+### Reliability and Judge Mode
+
+- [ ] Provide a deterministic reset / Judge Mode that restores the known initial no-authority state without bypassing security or manufacturing privilege.
+- [ ] Rehearse the exact lifecycle until repeatable.
+- [ ] Verify reset cannot serve as an alternate privileged lifecycle path.
+- [ ] Record a tight 2–3 minute successful run before submission as backup/asynchronous judging evidence.
+- [ ] Open the demo with the concise thesis: **"This agent can understand me and has the tool. Understanding and capability still do not equal authority."**
+
+### Reality / stub disclosure
+
+Before submission, README and demo materials must state exactly which boundaries are real and which, if any, remain temporarily simulated.
+
+If the generalized HUMAN lifecycle-governance runtime primitive identified by Objective 0C remains incomplete when the application reaches its grant ceremony, do not disguise that fact. Preserve the frozen ceremony/application contract, identify the temporary seam precisely, and replace it with the real reusable UCII primitive as soon as that primitive exists.
+
+No temporary seam may allow AssemblyAI, the LLM, challenge possession, payment, entitlement, or the voice agent itself to become an authority root.
+
+### Scope freeze
+
+Until the complete lifecycle passes the demo-completion gate:
+
+- do not add additional consequential tools;
+- do not expand into secondary voice scenarios;
+- do not build optional governance/recovery features that are unnecessary for the frozen demo;
+- do not prioritize cosmetic work over live-state correctness;
+- do not sacrifice DENY-path clarity for feature breadth.
+
+One excellent consequential action with real authority transitions is the priority.
+
+
 ## Objective 0A — Repository and documentation checkpoint
 
 Goal: establish a proven engineering checkpoint and make the repository documentation reflect the current design before implementation begins.
