@@ -100,6 +100,150 @@ Until the complete lifecycle passes the demo-completion gate:
 One excellent consequential action with real authority transitions is the priority.
 
 
+## Objective 3 design freeze — HUMAN lifecycle + Alexa+-scoped entitlement
+
+Status: **DESIGN UPDATED FROM OBJECTIVE 3G READ-ONLY INSPECTION**
+
+Objective 3 is no longer limited to provisioning a demo-only agent identity. The product must support a legitimate new HUMAN participant from first use while preserving the hackathon critical path and every UCII authority separation.
+
+### Governing separation
+
+`IDENTITY != AUTHENTICATION != STEP-UP != GOVERNANCE != DELEGATED AUTHORITY != AUTHORIZATION != ENTITLEMENT != PAYMENT != EXECUTION`
+
+Economic access must never manufacture authority.
+
+### First-use HUMAN lifecycle
+
+The product must support this protected lifecycle:
+
+`NEW USER → ALEXA+ ENROLLMENT CAPABILITY → CREATE/ESTABLISH HUMAN IDENTITY → ESTABLISH INITIAL GOVERNANCE → REGISTER AUTHENTICATION/CREDENTIAL → ESTABLISH RECOVERY → READY`
+
+The exact runtime ordering remains subject to implementation evidence and must use supported UCII boundaries. AssemblyAI, Alexa+, voice, transcript interpretation, challenge possession, payment, and entitlement may not bootstrap or become HUMAN governance authority.
+
+The HUMAN identity is durable. Credential loss, authenticator replacement, controller changes, delegated-authority revocation, product-entitlement revocation, recovery, and succession must operate around the durable identity rather than creating a replacement person identity.
+
+### HUMAN governance lifecycle requirements
+
+The product design must provide or reuse UCII primitives for:
+
+- independently authenticated HUMAN principals;
+- bounded HUMAN-to-target governance relationships;
+- exact operation scopes rather than wildcard governance;
+- multiple controllers without automatically making every controller a root;
+- controller expiry, rotation, and revocation;
+- narrowly limited controller roles, including recovery-only or revocation-only authority where policy permits;
+- recovery after credential/authenticator loss while preserving the HUMAN identity;
+- fail-closed recovery with no first-caller-wins path;
+- last-controller / permanent-lockout protection;
+- self-revocation semantics that do not silently orphan the authority domain;
+- pre-established succession / incapacity / death handling rather than an immortal root secret;
+- stronger or multiple governance conditions for critical controller, recovery, factor, transfer, and succession operations.
+
+Objective 3G established that UCII already contains durable HUMAN identity, exact HUMAN governance relationships, governance expiry/revocation, step-up evidence, short-lived one-use lifecycle authorization, credential recovery, and controller-authority recovery primitives. It also established remaining gaps or partial surfaces around broader controller powers, full HUMAN recovery governance, last-controller protection, succession/transfer, and public SDK governance exposure. These gaps must be filled as reusable UCII capabilities where required; do not create Voice/Alexa+-specific alternate authority roots.
+
+### Alexa+-only UCII economic entitlement
+
+This product must not require Brad, demo judges, or legitimate product users to pay UCII x402 charges merely to use the Alexa+ Voice Authority product.
+
+That requirement is satisfied through a **product-scoped UCII service entitlement**, not through general free UCII access.
+
+The entitlement contract is:
+
+`UCII IDENTITY = portable`
+
+`ALEXA+ PRODUCT ENTITLEMENT = narrowly scoped and non-portable`
+
+`CONTROLLER / GOVERNANCE AUTHORITY = separate`
+
+`DELEGATED ACTION AUTHORITY = separate`
+
+`x402 PAYMENT = alternative economic-access path`
+
+A valid Alexa+ entitlement may satisfy only the economic gate for explicitly approved UCII operations required by this product. It must never establish authentication, controller authority, HUMAN governance authority, delegated authority, authorization, revocation authority, or execution authority.
+
+### Two-phase entitlement model
+
+**Phase A — Alexa+ enrollment capability**
+
+A participant with no UCII identity or credential cannot yet produce the normal credential-bound service-entitlement proof. First use therefore requires a narrowly bounded enrollment capability.
+
+That capability must:
+
+- exist only for Alexa+ Voice Authority enrollment;
+- authorize only the minimum economic-access surface required to establish the participant;
+- be short-lived and/or single-purpose where appropriate;
+- be non-transferable and non-general-purpose;
+- create zero governance or action authority;
+- fail closed outside its exact enrollment surface; and
+- transition to the normal credential-bound product entitlement after successful enrollment.
+
+An anonymous reusable "free UCII" token is forbidden.
+
+**Phase B — Alexa+ participant entitlement**
+
+After participant establishment, normal product economic access must use a credential-bound entitlement that is restricted by:
+
+- the established subject identity;
+- the bound credential/fingerprint;
+- an explicit Alexa+ Voice Authority product/service identifier;
+- an allowlist of exact UCII operations/API method+path surfaces required by the product;
+- validity/expiry state; and
+- independent revocation state.
+
+The entitlement must be rejected when presented for unrelated UCII products, arbitrary API consumption, Scout, Ambassador, Guardian, or any other non-Alexa+ use. Rejection of the entitlement must leave the normal x402/economic policy available where applicable.
+
+### Entitlement lifecycle independence
+
+Revoking Alexa+ product entitlement must not revoke the HUMAN identity.
+
+Revoking a credential must not silently redefine HUMAN identity.
+
+Revoking delegated Voice Agent authority must not revoke product entitlement.
+
+Revoking product entitlement must not grant or revoke governance authority.
+
+Payment or entitlement success must never turn a UCII DENY into ALLOW unless the only failed condition was the independent economic-access gate.
+
+### Required anti-abuse proofs
+
+Implementation is not complete until tests prove both positive and negative boundaries, including:
+
+`VALID PARTICIPANT + VALID ALEXA+ ENTITLEMENT + ALLOWED ALEXA+ OPERATION → ECONOMIC GATE SATISFIED`
+
+`SAME PARTICIPANT + SAME ENTITLEMENT + NON-ALEXA+ OPERATION → ENTITLEMENT REJECTED`
+
+and independently:
+
+`ENTITLED + UNAUTHENTICATED → NO AUTHORITY`
+
+`ENTITLED + AUTHENTICATED + NO REQUIRED GOVERNANCE/ACTION AUTHORITY → DENY`
+
+`ENTITLED + AUTHENTICATED + REQUIRED AUTHORITY → ELIGIBLE FOR NORMAL UCII AUTHORIZATION/EXECUTION PATH`
+
+### UI contract
+
+The existing Voice Authority dashboard remains the visual north star. First-run and governance states must be added to that same product experience rather than replaced by an unrelated account-management application.
+
+Before enrollment the UI must be capable of truthfully showing states equivalent to:
+
+- WHO: no UCII identity established;
+- AUTHORITY: not established;
+- RECOVERY: not configured;
+- VOICE AGENT: no delegated authority.
+
+The primary first-use action may initiate the protected identity/governance enrollment ceremony, but every operational-looking UI state must be backed by real UCII state. Nothing that looks operational may be decorative.
+
+After enrollment, the same interface must expose the real identity, applicable controller/governance state, recovery readiness, Voice Agent delegation state, entitlement/economic-access state where useful, authorization decisions, expiry/countdown, execution result, and provenance required by the frozen proof-UI contract.
+
+### Scope-control interpretation
+
+The hackathon demo remains tightly focused on the single consequential Voice Authority lifecycle:
+
+`DENY → PROTECTED GRANT → ALLOW/EXECUTE → REVOKE → DENY`
+
+The HUMAN onboarding, recovery, controller, and Alexa+-entitlement work above is not permission for unrelated feature expansion. Implement only the reusable lifecycle/economic primitives necessary to make this product legitimate, safe, non-abusable, and usable by a new participant. Cosmetic or secondary scenarios remain deferred until the critical proof passes.
+
+
 ## Objective 0A — Repository and documentation checkpoint
 
 Goal: establish a proven engineering checkpoint and make the repository documentation reflect the current design before implementation begins.
