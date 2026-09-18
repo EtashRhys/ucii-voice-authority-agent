@@ -140,6 +140,8 @@
         function resetAssemblyAIConnection() {
             assemblyaiSocket = null;
             assemblyaiSessionId = null;
+            finalizedTurnItemId = null;
+            validatedProposal.textContent = "NONE";
             connectAssemblyAIButton.disabled = false;
             disconnectAssemblyAIButton.disabled = true;
         }
@@ -149,6 +151,8 @@
 
             assemblyaiSocket = null;
             assemblyaiSessionId = null;
+            finalizedTurnItemId = null;
+            validatedProposal.textContent = "NONE";
 
             if (
                 socket !== null &&
@@ -356,6 +360,8 @@
                     }
 
                     assemblyaiSessionId = message.session_id;
+                    finalizedTurnItemId = null;
+                    validatedProposal.textContent = "NONE";
                     disconnectAssemblyAIButton.disabled = false;
                     setAssemblyAIState("READY");
                 } else if (message.type === "transcript.user") {
@@ -363,12 +369,13 @@
                         typeof message.text !== "string" ||
                         message.text.trim().length === 0 ||
                         typeof message.item_id !== "string" ||
-                        message.item_id.length === 0
+                        message.item_id.trim().length === 0
                     ) {
                         return;
                     }
 
                     finalizedTurnItemId = message.item_id;
+                    validatedProposal.textContent = "NONE";
                     finalizedTurn.textContent = message.text;
                 } else if (message.type === "tool.call") {
                     void submitAssemblyAIToolProposal(message);
