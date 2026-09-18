@@ -50,6 +50,12 @@
                     </button>
                 </dd>
 
+                <dt>Audio chunks sent</dt>
+                <dd id="audio-chunks-sent">0</dd>
+
+                <dt>PCM16 bytes sent</dt>
+                <dd id="audio-bytes-sent">0</dd>
+
                 <dt>Finalized user turn</dt>
                 <dd id="finalized-turn">NONE</dd>
 
@@ -74,6 +80,10 @@
             document.getElementById("stop-microphone");
         const assemblyaiStatus =
             document.getElementById("assemblyai-status");
+        const audioChunksSentStatus =
+            document.getElementById("audio-chunks-sent");
+        const audioBytesSentStatus =
+            document.getElementById("audio-bytes-sent");
         const connectAssemblyAIButton =
             document.getElementById("connect-assemblyai");
         const disconnectAssemblyAIButton =
@@ -92,6 +102,8 @@
         let microphoneResamplePosition = 0;
         let assemblyaiSocket = null;
         let assemblyaiSessionId = null;
+        let audioChunksSent = 0;
+        let audioBytesSent = 0;
 
         function setMicrophoneState(state) {
             microphoneStatus.textContent = state;
@@ -99,6 +111,22 @@
 
         function setAssemblyAIState(state) {
             assemblyaiStatus.textContent = state;
+        }
+
+        function resetAudioTransportEvidence() {
+            audioChunksSent = 0;
+            audioBytesSent = 0;
+            audioChunksSentStatus.textContent = "0";
+            audioBytesSentStatus.textContent = "0";
+        }
+
+        function recordAudioTransportEvidence(pcm16) {
+            audioChunksSent += 1;
+            audioBytesSent += pcm16.byteLength;
+            audioChunksSentStatus.textContent =
+                String(audioChunksSent);
+            audioBytesSentStatus.textContent =
+                String(audioBytesSent);
         }
 
         function resetAssemblyAIConnection() {
@@ -133,6 +161,8 @@
             if (assemblyaiSocket !== null) {
                 return;
             }
+
+            resetAudioTransportEvidence();
 
             connectAssemblyAIButton.disabled = true;
             disconnectAssemblyAIButton.disabled = true;
@@ -358,6 +388,8 @@
                     audio: encodePcm16Base64(pcm16),
                 }),
             );
+
+            recordAudioTransportEvidence(pcm16);
         }
 
         function captureMicrophonePcm16(samples, sourceSampleRate) {
