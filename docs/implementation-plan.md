@@ -100,7 +100,7 @@ Until the complete lifecycle passes the demo-completion gate:
 One excellent consequential action with real authority transitions is the priority.
 
 
-## Objective 3 design freeze — HUMAN lifecycle + Alexa+-scoped entitlement
+## Objective 3 design freeze — HUMAN lifecycle + Voice Authority product-scoped entitlement
 
 Status: **DESIGN UPDATED FROM OBJECTIVE 3G READ-ONLY INSPECTION**
 
@@ -116,9 +116,9 @@ Economic access must never manufacture authority.
 
 The product must support this protected lifecycle:
 
-`NEW USER → ALEXA+ ENROLLMENT CAPABILITY → CREATE/ESTABLISH HUMAN IDENTITY → ESTABLISH INITIAL GOVERNANCE → REGISTER AUTHENTICATION/CREDENTIAL → ESTABLISH RECOVERY → READY`
+`NEW USER → VOICE AUTHORITY ENROLLMENT CAPABILITY → CREATE/ESTABLISH HUMAN IDENTITY → ESTABLISH INITIAL GOVERNANCE → REGISTER AUTHENTICATION/CREDENTIAL → ESTABLISH RECOVERY → READY`
 
-The exact runtime ordering remains subject to implementation evidence and must use supported UCII boundaries. AssemblyAI, Alexa+, voice, transcript interpretation, challenge possession, payment, and entitlement may not bootstrap or become HUMAN governance authority.
+The exact runtime ordering remains subject to implementation evidence and must use supported UCII boundaries. AssemblyAI, AssemblyAI Voice Authority Agent, voice, transcript interpretation, challenge possession, payment, and entitlement may not bootstrap or become HUMAN governance authority.
 
 The HUMAN identity is durable. Credential loss, authenticator replacement, controller changes, delegated-authority revocation, product-entitlement revocation, recovery, and succession must operate around the durable identity rather than creating a replacement person identity.
 
@@ -139,11 +139,11 @@ The product design must provide or reuse UCII primitives for:
 - pre-established succession / incapacity / death handling rather than an immortal root secret;
 - stronger or multiple governance conditions for critical controller, recovery, factor, transfer, and succession operations.
 
-Objective 3G established that UCII already contains durable HUMAN identity, exact HUMAN governance relationships, governance expiry/revocation, step-up evidence, short-lived one-use lifecycle authorization, credential recovery, and controller-authority recovery primitives. It also established remaining gaps or partial surfaces around broader controller powers, full HUMAN recovery governance, last-controller protection, succession/transfer, and public SDK governance exposure. These gaps must be filled as reusable UCII capabilities where required; do not create Voice/Alexa+-specific alternate authority roots.
+Objective 3G established that UCII already contains durable HUMAN identity, exact HUMAN governance relationships, governance expiry/revocation, step-up evidence, short-lived one-use lifecycle authorization, credential recovery, and controller-authority recovery primitives. It also established remaining gaps or partial surfaces around broader controller powers, full HUMAN recovery governance, last-controller protection, succession/transfer, and public SDK governance exposure. These gaps must be filled as reusable UCII capabilities where required; do not create Voice/AssemblyAI Voice Authority Agent-specific alternate authority roots.
 
-### Alexa+-only UCII economic entitlement
+### Voice Authority product-only UCII economic entitlement
 
-This product must not require Brad, demo judges, or legitimate product users to pay UCII x402 charges merely to use the Alexa+ Voice Authority product.
+This product must not require Brad, demo judges, or legitimate product users to pay UCII x402 charges merely to use the AssemblyAI Voice Authority Agent.
 
 That requirement is satisfied through a **product-scoped UCII service entitlement**, not through general free UCII access.
 
@@ -151,7 +151,7 @@ The entitlement contract is:
 
 `UCII IDENTITY = portable`
 
-`ALEXA+ PRODUCT ENTITLEMENT = narrowly scoped and non-portable`
+`VOICE AUTHORITY PRODUCT ENTITLEMENT = narrowly scoped and non-portable`
 
 `CONTROLLER / GOVERNANCE AUTHORITY = separate`
 
@@ -159,17 +159,17 @@ The entitlement contract is:
 
 `x402 PAYMENT = alternative economic-access path`
 
-A valid Alexa+ entitlement may satisfy only the economic gate for explicitly approved UCII operations required by this product. It must never establish authentication, controller authority, HUMAN governance authority, delegated authority, authorization, revocation authority, or execution authority.
+A valid Voice Authority product entitlement may satisfy only the economic gate for explicitly approved UCII operations required by this product. It must never establish authentication, controller authority, HUMAN governance authority, delegated authority, authorization, revocation authority, or execution authority.
 
 ### Two-phase entitlement model
 
-**Phase A — Alexa+ enrollment capability**
+**Phase A — AssemblyAI Voice Authority Agent enrollment capability**
 
 A participant with no UCII identity or credential cannot yet produce the normal credential-bound service-entitlement proof. First use therefore requires a narrowly bounded enrollment capability.
 
 That capability must:
 
-- exist only for Alexa+ Voice Authority enrollment;
+- exist only for AssemblyAI Voice Authority Agent enrollment;
 - authorize only the minimum economic-access surface required to establish the participant;
 - be short-lived and/or single-purpose where appropriate;
 - be non-transferable and non-general-purpose;
@@ -179,22 +179,22 @@ That capability must:
 
 An anonymous reusable "free UCII" token is forbidden.
 
-**Phase B — Alexa+ participant entitlement**
+**Phase B — Voice Authority participant entitlement**
 
 After participant establishment, normal product economic access must use a credential-bound entitlement that is restricted by:
 
 - the established subject identity;
 - the bound credential/fingerprint;
-- an explicit Alexa+ Voice Authority product/service identifier;
+- an explicit AssemblyAI Voice Authority Agent/service identifier;
 - an allowlist of exact UCII operations/API method+path surfaces required by the product;
 - validity/expiry state; and
 - independent revocation state.
 
-The entitlement must be rejected when presented for unrelated UCII products, arbitrary API consumption, Scout, Ambassador, Guardian, or any other non-Alexa+ use. Rejection of the entitlement must leave the normal x402/economic policy available where applicable.
+The entitlement must be rejected when presented for unrelated UCII products, arbitrary API consumption, Scout, Ambassador, Guardian, or any other non-Voice Authority use. Rejection of the entitlement must leave the normal x402/economic policy available where applicable.
 
 ### Entitlement lifecycle independence
 
-Revoking Alexa+ product entitlement must not revoke the HUMAN identity.
+Revoking Voice Authority product entitlement must not revoke the HUMAN identity.
 
 Revoking a credential must not silently redefine HUMAN identity.
 
@@ -208,9 +208,9 @@ Payment or entitlement success must never turn a UCII DENY into ALLOW unless the
 
 Implementation is not complete until tests prove both positive and negative boundaries, including:
 
-`VALID PARTICIPANT + VALID ALEXA+ ENTITLEMENT + ALLOWED ALEXA+ OPERATION → ECONOMIC GATE SATISFIED`
+`VALID PARTICIPANT + VALID ALEXA+ ENTITLEMENT + ALLOWED VOICE AUTHORITY OPERATION → ECONOMIC GATE SATISFIED`
 
-`SAME PARTICIPANT + SAME ENTITLEMENT + NON-ALEXA+ OPERATION → ENTITLEMENT REJECTED`
+`SAME PARTICIPANT + SAME ENTITLEMENT + NON-VOICE AUTHORITY OPERATION → ENTITLEMENT REJECTED`
 
 and independently:
 
@@ -241,7 +241,7 @@ The hackathon demo remains tightly focused on the single consequential Voice Aut
 
 `DENY → PROTECTED GRANT → ALLOW/EXECUTE → REVOKE → DENY`
 
-The HUMAN onboarding, recovery, controller, and Alexa+-entitlement work above is not permission for unrelated feature expansion. Implement only the reusable lifecycle/economic primitives necessary to make this product legitimate, safe, non-abusable, and usable by a new participant. Cosmetic or secondary scenarios remain deferred until the critical proof passes.
+The HUMAN onboarding, recovery, controller, and Voice-Authority-entitlement work above is not permission for unrelated feature expansion. Implement only the reusable lifecycle/economic primitives necessary to make this product legitimate, safe, non-abusable, and usable by a new participant. Cosmetic or secondary scenarios remain deferred until the critical proof passes.
 
 
 ## Objective 0A — Repository and documentation checkpoint
