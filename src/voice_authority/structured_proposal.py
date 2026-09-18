@@ -25,6 +25,15 @@ class ConsequenceClass(StrEnum):
     CRITICAL = "CRITICAL"
 
 
+OPERATION_CONSEQUENCE_CLASS = {
+    Operation.INSPECT: ConsequenceClass.LOW,
+    Operation.EXECUTE: ConsequenceClass.CONSEQUENTIAL,
+    Operation.GRANT: ConsequenceClass.SENSITIVE,
+    Operation.REVOKE: ConsequenceClass.SENSITIVE,
+    Operation.GOVERN: ConsequenceClass.CRITICAL,
+}
+
+
 @dataclass(frozen=True, slots=True)
 class StructuredProposal:
     """Canonical bounded proposal before any authority evaluation."""
@@ -42,6 +51,18 @@ class StructuredProposal:
     requested_parameters: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
+        expected_consequence_class = OPERATION_CONSEQUENCE_CLASS.get(
+            self.operation
+        )
+
+        if expected_consequence_class is None:
+            raise ValueError("unsupported operation")
+
+        if self.consequence_class is not expected_consequence_class:
+            raise ValueError(
+                "consequence_class does not match operation"
+            )
+
         required_text = {
             "ceremony_id": self.ceremony_id,
             "session_id": self.session_id,
