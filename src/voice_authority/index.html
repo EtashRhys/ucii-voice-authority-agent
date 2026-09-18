@@ -59,6 +59,9 @@
                 <dt>Finalized user turn</dt>
                 <dd id="finalized-turn">NONE</dd>
 
+                <dt>Validated bounded request</dt>
+                <dd id="validated-proposal">NONE</dd>
+
                 <dt>Consequential execution</dt>
                 <dd id="execution-status">DISABLED</dd>
             </dl>
@@ -82,6 +85,8 @@
             document.getElementById("assemblyai-status");
         const finalizedTurn =
             document.getElementById("finalized-turn");
+        const validatedProposal =
+            document.getElementById("validated-proposal");
         const audioChunksSentStatus =
             document.getElementById("audio-chunks-sent");
         const audioBytesSentStatus =
@@ -194,7 +199,28 @@
                     return;
                 }
 
-                await response.json();
+                const proposal = await response.json();
+
+                if (
+                    proposal.operation !== "EXECUTE" ||
+                    proposal.consequence_class !== "CONSEQUENTIAL" ||
+                    proposal.session_id !== assemblyaiSessionId ||
+                    proposal.source_turn_reference !== finalizedTurnItemId ||
+                    proposal.requested_scope?.operation !==
+                        "compute.purchase" ||
+                    !Number.isInteger(
+                        proposal.requested_parameters?.quantity,
+                    ) ||
+                    proposal.requested_parameters.quantity < 1 ||
+                    proposal.requested_parameters?.unit !== "compute"
+                ) {
+                    return;
+                }
+
+                validatedProposal.textContent =
+                    `EXECUTE compute.purchase — ` +
+                    `${proposal.requested_parameters.quantity} compute — ` +
+                    `${proposal.consequence_class}`;
             } catch {
                 return;
             }
