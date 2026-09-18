@@ -104,6 +104,7 @@
         let microphoneResamplePosition = 0;
         let assemblyaiSocket = null;
         let assemblyaiSessionId = null;
+        let finalizedTurnItemId = null;
         let audioChunksSent = 0;
         let audioBytesSent = 0;
 
@@ -294,11 +295,14 @@
                 } else if (message.type === "transcript.user") {
                     if (
                         typeof message.text !== "string" ||
-                        message.text.trim().length === 0
+                        message.text.trim().length === 0 ||
+                        typeof message.item_id !== "string" ||
+                        message.item_id.length === 0
                     ) {
                         return;
                     }
 
+                    finalizedTurnItemId = message.item_id;
                     finalizedTurn.textContent = message.text;
                 } else if (message.type === "session.error") {
                     setAssemblyAIState("SESSION ERROR");
