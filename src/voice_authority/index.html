@@ -59,6 +59,9 @@
                 <dt>AssemblyAI speech detection</dt>
                 <dd id="speech-detection">NONE</dd>
 
+                <dt>Latest AssemblyAI server event</dt>
+                <dd id="assemblyai-server-event">NONE</dd>
+
                 <dt>Partial user transcript</dt>
                 <dd id="partial-turn">NONE</dd>
 
@@ -91,6 +94,8 @@
             document.getElementById("assemblyai-status");
         const speechDetection =
             document.getElementById("speech-detection");
+        const assemblyaiServerEvent =
+            document.getElementById("assemblyai-server-event");
         const partialTurn =
             document.getElementById("partial-turn");
         const finalizedTurn =
@@ -363,6 +368,14 @@
                     message = JSON.parse(event.data);
                 } catch (error) {
                     return;
+                }
+
+                if (
+                    typeof message.type === "string" &&
+                    message.type.trim().length > 0
+                ) {
+                    assemblyaiServerEvent.textContent =
+                        message.type;
                 }
 
                 if (message.type === "session.ready") {
