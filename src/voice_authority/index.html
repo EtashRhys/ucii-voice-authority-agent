@@ -90,7 +90,6 @@
         let microphoneWorkletNode = null;
         let microphoneResampleBuffer = new Float32Array(0);
         let microphoneResamplePosition = 0;
-        let localPcm16Chunks = [];
         let assemblyaiSocket = null;
         let assemblyaiSessionId = null;
 
@@ -342,7 +341,26 @@
             return btoa(binary);
         }
 
-        function captureLocalPcm16(samples, sourceSampleRate) {
+        function sendAssemblyAIAudio(pcm16) {
+            const socket = assemblyaiSocket;
+
+            if (
+                socket === null ||
+                socket.readyState !== WebSocket.OPEN ||
+                assemblyaiSessionId === null
+            ) {
+                return;
+            }
+
+            socket.send(
+                JSON.stringify({
+                    type: "input.audio",
+                    audio: encodePcm16Base64(pcm16),
+                }),
+            );
+        }
+
+        function captureMicrophonePcm16(samples, sourceSampleRate) {
             const resampled =
                 resampleToAssemblyAIRate(samples, sourceSampleRate);
 
@@ -352,9 +370,7 @@
 
             const pcm16 = float32ToPcm16(resampled);
 
-            localPcm16Chunks.push(
-                encodePcm16Base64(pcm16),
-            );
+            sendAssemblyAIAudio(pcm16);
         }
 
         async function stopMicrophoneAudioPipeline() {
@@ -403,7 +419,7 @@
                         return;
                     }
 
-                    captureLocalPcm16(
+                    captureMicrophonePcm16(
                         event.data,
                         context.sampleRate,
                     );
@@ -416,7 +432,6 @@
                 microphoneWorkletNode = worklet;
                 microphoneResampleBuffer = new Float32Array(0);
                 microphoneResamplePosition = 0;
-                localPcm16Chunks = [];
             } catch (error) {
                 if (context.state !== "closed") {
                     await context.close();
