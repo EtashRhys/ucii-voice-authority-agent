@@ -25,8 +25,8 @@ This end-to-end lifecycle takes precedence over tool breadth, secondary voice sc
 
 ### Critical-path requirements
 
-- [ ] Freeze one deterministic, safe, visibly consequential action.
-- [ ] Voice input produces the stable structured proposal through real AssemblyAI runtime integration.
+- [x] Freeze one deterministic, safe, visibly consequential action: bounded compute purchase.
+- [x] Voice input produces the stable structured proposal through real AssemblyAI runtime integration.
 - [ ] Bind the proposal to real UCII identity state.
 - [ ] Perform a fresh UCII authority check and prove initial DENY.
 - [ ] Prove the executor did not run on DENY.
@@ -208,7 +208,7 @@ Payment or entitlement success must never turn a UCII DENY into ALLOW unless the
 
 Implementation is not complete until tests prove both positive and negative boundaries, including:
 
-`VALID PARTICIPANT + VALID ALEXA+ ENTITLEMENT + ALLOWED VOICE AUTHORITY OPERATION → ECONOMIC GATE SATISFIED`
+`VALID PARTICIPANT + VALID VOICE AUTHORITY ENTITLEMENT + ALLOWED VOICE AUTHORITY OPERATION → ECONOMIC GATE SATISFIED`
 
 `SAME PARTICIPANT + SAME ENTITLEMENT + NON-VOICE AUTHORITY OPERATION → ENTITLEMENT REJECTED`
 
@@ -438,27 +438,65 @@ Acceptance: protected state transitions and their required evidence are determin
 
 ## Phase 1 — AssemblyAI voice proof
 
+Status: **COMPLETE — REAL ASSEMBLYAI RUNTIME PROVEN**
+
 Goal: prove real microphone-to-AssemblyAI interaction independently of consequential execution.
 
-- [ ] Inspect current AssemblyAI Voice Agent API/SDK and authentication model.
-- [ ] Select the smallest supported browser/server architecture.
-- [ ] Establish microphone input.
-- [ ] Establish real-time AssemblyAI session.
-- [ ] Produce an attributable structured proposed action from a spoken request.
-- [ ] Verify interruption/turn behavior only if required for the final demo.
+- [x] Inspect current AssemblyAI Voice Agent API/SDK and authentication model.
+- [x] Select the smallest supported browser/server architecture.
+- [x] Establish microphone input.
+- [x] Establish real-time AssemblyAI session.
+- [x] Receive finalized attributable user turns from the real AssemblyAI session.
+- [x] Preserve the no-consequential-execution boundary.
 
-Acceptance: a spoken test request reaches the application as a stable structured proposal with no UCII authority implied.
+Acceptance: **PASS.** Real microphone audio reaches AssemblyAI and finalized user turns return to the application while consequential execution remains disabled.
 
 ## Phase 2 — UCII identity binding
 
-Goal: bind the proposed action to a real UCII agent identity through the public UCII boundary.
+Status: **IN PROGRESS — OBJECTIVE 3 INSPECTION THROUGH 3G COMPLETE**
 
-- [ ] Inspect exact SDK/API calls needed from the current UCII production contract.
-- [ ] Configure the application without embedding private UCII secrets in the public repo.
+Goal: bind the proposed action to real UCII identity state through legitimate public/protected UCII boundaries.
+
+Completed inspection establishes:
+
+- [x] Exact public identity semantics and SDK/API identity-creation surface inspected.
+- [x] Participant identity-binding contract inspected.
+- [x] Provisioning and protected custody patterns inspected.
+- [x] Existing UCII identity inventory inspected; no HUMAN or Voice Authority Agent identity currently exists.
+- [x] HUMAN identity and lifecycle-governance semantics inspected.
+- [x] Provisioning execution and service-entitlement contracts inspected.
+- [x] HUMAN bootstrap, recovery, controller lifecycle, succession/lockout, and product-entitlement gaps inspected.
+- [x] HUMAN lifecycle + Voice Authority product-scoped entitlement design frozen from Objective 3G findings.
+- [ ] Implement the smallest required reusable UCII-core corrections identified by 3G.
+- [ ] Provision/bind the legitimate HUMAN and Voice Authority participant identities through supported boundaries.
+- [ ] Establish credential/authentication and protected governance relationships.
+- [ ] Establish Voice Authority product-scoped economic entitlement without creating general UCII free access.
 - [ ] Establish agent identity verification.
-- [ ] Surface verification state in the proof UI.
+- [ ] Surface real verification/governance state in the proof UI.
 
-Acceptance: the application can prove which UCII identity is proposing the action, independently of the voice transcript/model assertion.
+Acceptance: the application can prove which UCII identities participate in the request and who may govern the Voice Agent, independently of transcript/model assertions, entitlement, or payment.
+
+## Objective 2 — Finalized turn to bounded structured operation
+
+Status: **COMPLETE — LIVE ASSEMBLYAI TOOL PROPOSAL PROVEN**
+
+The frozen consequential proposal is `propose_compute_purchase`, mapped to `EXECUTE / CONSEQUENTIAL`, with positive integer quantity, unit `compute`, and scope `compute.purchase`.
+
+Completed proof includes:
+
+- [x] Deterministic structured-operation model and consequence mapping.
+- [x] AssemblyAI tool registration for the bounded compute-purchase proposal.
+- [x] Finalized-turn lineage binding.
+- [x] Server proposal-validation endpoint.
+- [x] Browser bridge from real AssemblyAI tool call to deterministic application validation.
+- [x] Judge-visible validated request state.
+- [x] Stale-lineage protection.
+- [x] Explicit AssemblyAI system prompt for tool use.
+- [x] Live proof: AssemblyAI produced the tool call and the backend accepted the validated proposal.
+- [x] Execution remained disabled; no UCII authority was implied or invoked.
+- [x] Evidence persistence completed.
+
+Objective 2 closed at synchronized checkpoint `9faefa205849ab0408eac31b7dc05c6a3ce952b3`.
 
 ## Phase 3 — Denial boundary
 
