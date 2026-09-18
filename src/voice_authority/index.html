@@ -160,6 +160,46 @@
             setAssemblyAIState("DISCONNECTED");
         }
 
+        async function submitAssemblyAIToolProposal(message) {
+            if (
+                assemblyaiSessionId === null ||
+                finalizedTurnItemId === null ||
+                typeof message.name !== "string" ||
+                message.name.length === 0 ||
+                typeof message.arguments !== "object" ||
+                message.arguments === null ||
+                Array.isArray(message.arguments)
+            ) {
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    "/proposals/assemblyai-tool",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            session_id: assemblyaiSessionId,
+                            source_turn_reference: finalizedTurnItemId,
+                            tool_name: message.name,
+                            arguments: message.arguments,
+                        }),
+                    },
+                );
+
+                if (!response.ok) {
+                    return;
+                }
+
+                await response.json();
+            } catch {
+                return;
+            }
+        }
+
         async function connectAssemblyAI() {
             if (assemblyaiSocket !== null) {
                 return;
@@ -304,6 +344,8 @@
 
                     finalizedTurnItemId = message.item_id;
                     finalizedTurn.textContent = message.text;
+                } else if (message.type === "tool.call") {
+                    void submitAssemblyAIToolProposal(message);
                 } else if (message.type === "session.error") {
                     setAssemblyAIState("SESSION ERROR");
                 }
