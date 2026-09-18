@@ -51,6 +51,14 @@ class StructuredProposal:
     requested_parameters: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
+        if not isinstance(self.operation, Operation):
+            raise TypeError("operation must be an Operation")
+
+        if not isinstance(self.consequence_class, ConsequenceClass):
+            raise TypeError(
+                "consequence_class must be a ConsequenceClass"
+            )
+
         expected_consequence_class = OPERATION_CONSEQUENCE_CLASS.get(
             self.operation
         )
@@ -103,3 +111,55 @@ class StructuredProposal:
                 raise TypeError(
                     f"{field_name} must be absent or a dictionary"
                 )
+
+COMPUTE_PURCHASE_TOOL_NAME = "propose_compute_purchase"
+
+
+def build_compute_purchase_proposal(
+    *,
+    tool_name: str,
+    arguments: dict[str, Any],
+    ceremony_id: str,
+    session_id: str,
+    source_turn_reference: str,
+    created_at: datetime,
+) -> StructuredProposal:
+    """Validate one AssemblyAI tool proposal without creating authority."""
+
+    if tool_name != COMPUTE_PURCHASE_TOOL_NAME:
+        raise ValueError("unsupported tool")
+
+    if not isinstance(arguments, dict):
+        raise TypeError("arguments must be a dictionary")
+
+    if set(arguments) != {"quantity", "unit"}:
+        raise ValueError("invalid compute purchase arguments")
+
+    quantity = arguments["quantity"]
+    unit = arguments["unit"]
+
+    if (
+        not isinstance(quantity, int)
+        or isinstance(quantity, bool)
+        or quantity < 1
+    ):
+        raise ValueError("quantity must be a positive integer")
+
+    if unit != "compute":
+        raise ValueError("unit must be compute")
+
+    return StructuredProposal(
+        ceremony_id=ceremony_id,
+        session_id=session_id,
+        operation=Operation.EXECUTE,
+        consequence_class=ConsequenceClass.CONSEQUENTIAL,
+        source_turn_reference=source_turn_reference,
+        created_at=created_at,
+        requested_scope={
+            "operation": "compute.purchase",
+        },
+        requested_parameters={
+            "quantity": quantity,
+            "unit": unit,
+        },
+    )
