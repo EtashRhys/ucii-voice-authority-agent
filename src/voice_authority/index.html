@@ -81,8 +81,16 @@
 
         const ASSEMBLYAI_WS_URL =
             "wss://agents.assemblyai.com/v1/ws";
+        const ASSEMBLYAI_AUDIO_SAMPLE_RATE = 24000;
+        const MICROPHONE_WORKLET_URL = "/microphone-worklet.js";
 
         let microphoneStream = null;
+        let microphoneAudioContext = null;
+        let microphoneSourceNode = null;
+        let microphoneWorkletNode = null;
+        let microphoneResampleBuffer = new Float32Array(0);
+        let microphoneResamplePosition = 0;
+        let localPcm16Chunks = [];
         let assemblyaiSocket = null;
         let assemblyaiSessionId = null;
 
@@ -250,7 +258,177 @@
             });
         }
 
-        function stopMicrophone() {
+        function float32ToPcm16(samples) {
+            const pcm16 = new Int16Array(samples.length);
+
+            for (let index = 0; index < samples.length; index += 1) {
+                const sample = Math.max(-1, Math.min(1, samples[index]));
+
+                pcm16[index] =
+                    sample < 0
+                        ? Math.round(sample * 32768)
+                        : Math.round(sample * 32767);
+            }
+
+            return pcm16;
+        }
+
+        function resampleToAssemblyAIRate(samples, sourceSampleRate) {
+            if (
+                !(samples instanceof Float32Array) ||
+                samples.length === 0 ||
+                !Number.isFinite(sourceSampleRate) ||
+                sourceSampleRate <= 0
+            ) {
+                return new Float32Array(0);
+            }
+
+            const combined =
+                new Float32Array(
+                    microphoneResampleBuffer.length + samples.length,
+                );
+
+            combined.set(microphoneResampleBuffer, 0);
+            combined.set(samples, microphoneResampleBuffer.length);
+
+            const sourceStep =
+                sourceSampleRate / ASSEMBLYAI_AUDIO_SAMPLE_RATE;
+            const output = [];
+
+            while (microphoneResamplePosition + 1 < combined.length) {
+                const lowerIndex = Math.floor(microphoneResamplePosition);
+                const upperIndex = lowerIndex + 1;
+                const fraction =
+                    microphoneResamplePosition - lowerIndex;
+
+                output.push(
+                    combined[lowerIndex] +
+                    (
+                        combined[upperIndex] -
+                        combined[lowerIndex]
+                    ) * fraction,
+                );
+
+                microphoneResamplePosition += sourceStep;
+            }
+
+            const retainedStart =
+                Math.max(
+                    0,
+                    Math.floor(microphoneResamplePosition),
+                );
+
+            microphoneResampleBuffer =
+                combined.slice(retainedStart);
+            microphoneResamplePosition -= retainedStart;
+
+            return Float32Array.from(output);
+        }
+
+        function encodePcm16Base64(pcm16) {
+            const bytes =
+                new Uint8Array(
+                    pcm16.buffer,
+                    pcm16.byteOffset,
+                    pcm16.byteLength,
+                );
+
+            let binary = "";
+
+            for (const byte of bytes) {
+                binary += String.fromCharCode(byte);
+            }
+
+            return btoa(binary);
+        }
+
+        function captureLocalPcm16(samples, sourceSampleRate) {
+            const resampled =
+                resampleToAssemblyAIRate(samples, sourceSampleRate);
+
+            if (resampled.length === 0) {
+                return;
+            }
+
+            const pcm16 = float32ToPcm16(resampled);
+
+            localPcm16Chunks.push(
+                encodePcm16Base64(pcm16),
+            );
+        }
+
+        async function stopMicrophoneAudioPipeline() {
+            if (microphoneWorkletNode !== null) {
+                microphoneWorkletNode.port.onmessage = null;
+                microphoneWorkletNode.disconnect();
+                microphoneWorkletNode = null;
+            }
+
+            if (microphoneSourceNode !== null) {
+                microphoneSourceNode.disconnect();
+                microphoneSourceNode = null;
+            }
+
+            if (microphoneAudioContext !== null) {
+                const context = microphoneAudioContext;
+                microphoneAudioContext = null;
+
+                if (context.state !== "closed") {
+                    await context.close();
+                }
+            }
+
+            microphoneResampleBuffer = new Float32Array(0);
+            microphoneResamplePosition = 0;
+        }
+
+        async function startMicrophoneAudioPipeline(stream) {
+            const context = new AudioContext();
+
+            try {
+                await context.audioWorklet.addModule(
+                    MICROPHONE_WORKLET_URL,
+                );
+
+                const source =
+                    context.createMediaStreamSource(stream);
+                const worklet =
+                    new AudioWorkletNode(
+                        context,
+                        "microphone-capture-processor",
+                    );
+
+                worklet.port.onmessage = (event) => {
+                    if (!(event.data instanceof Float32Array)) {
+                        return;
+                    }
+
+                    captureLocalPcm16(
+                        event.data,
+                        context.sampleRate,
+                    );
+                };
+
+                source.connect(worklet);
+
+                microphoneAudioContext = context;
+                microphoneSourceNode = source;
+                microphoneWorkletNode = worklet;
+                microphoneResampleBuffer = new Float32Array(0);
+                microphoneResamplePosition = 0;
+                localPcm16Chunks = [];
+            } catch (error) {
+                if (context.state !== "closed") {
+                    await context.close();
+                }
+
+                throw error;
+            }
+        }
+
+        async function stopMicrophone() {
+            await stopMicrophoneAudioPipeline();
+
             if (microphoneStream !== null) {
                 for (const track of microphoneStream.getTracks()) {
                     track.stop();
@@ -286,12 +464,15 @@
 
                 microphoneStream = stream;
 
+                await startMicrophoneAudioPipeline(stream);
+
                 for (const track of stream.getAudioTracks()) {
                     track.addEventListener(
                         "ended",
                         () => {
                             if (microphoneStream === stream) {
                                 microphoneStream = null;
+                                void stopMicrophoneAudioPipeline();
                                 startMicrophoneButton.disabled = false;
                                 stopMicrophoneButton.disabled = true;
                                 setMicrophoneState("STOPPED");
@@ -304,7 +485,16 @@
                 stopMicrophoneButton.disabled = false;
                 setMicrophoneState("LISTENING");
             } catch (error) {
-                microphoneStream = null;
+                if (microphoneStream !== null) {
+                    for (const track of microphoneStream.getTracks()) {
+                        track.stop();
+                    }
+
+                    microphoneStream = null;
+                }
+
+                await stopMicrophoneAudioPipeline();
+
                 startMicrophoneButton.disabled = false;
                 stopMicrophoneButton.disabled = true;
 
