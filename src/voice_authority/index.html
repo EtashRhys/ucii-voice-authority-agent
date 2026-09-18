@@ -56,6 +56,12 @@
                 <dt>PCM16 bytes sent</dt>
                 <dd id="audio-bytes-sent">0</dd>
 
+                <dt>AssemblyAI speech detection</dt>
+                <dd id="speech-detection">NONE</dd>
+
+                <dt>Partial user transcript</dt>
+                <dd id="partial-turn">NONE</dd>
+
                 <dt>Finalized user turn</dt>
                 <dd id="finalized-turn">NONE</dd>
 
@@ -83,6 +89,10 @@
             document.getElementById("stop-microphone");
         const assemblyaiStatus =
             document.getElementById("assemblyai-status");
+        const speechDetection =
+            document.getElementById("speech-detection");
+        const partialTurn =
+            document.getElementById("partial-turn");
         const finalizedTurn =
             document.getElementById("finalized-turn");
         const validatedProposal =
@@ -367,9 +377,22 @@
 
                     assemblyaiSessionId = message.session_id;
                     finalizedTurnItemId = null;
+                    speechDetection.textContent = "NONE";
+                    partialTurn.textContent = "NONE";
                     validatedProposal.textContent = "NONE";
                     disconnectAssemblyAIButton.disabled = false;
                     setAssemblyAIState("READY");
+                } else if (message.type === "input.speech.started") {
+                    speechDetection.textContent = "STARTED";
+                } else if (message.type === "input.speech.stopped") {
+                    speechDetection.textContent = "STOPPED";
+                } else if (message.type === "transcript.user.delta") {
+                    if (
+                        typeof message.delta === "string" &&
+                        message.delta.trim().length > 0
+                    ) {
+                        partialTurn.textContent = message.delta;
+                    }
                 } else if (message.type === "transcript.user") {
                     if (
                         typeof message.text !== "string" ||
@@ -381,6 +404,7 @@
                     }
 
                     finalizedTurnItemId = message.item_id;
+                    partialTurn.textContent = "NONE";
                     validatedProposal.textContent = "NONE";
                     finalizedTurn.textContent = message.text;
                 } else if (message.type === "tool.call") {
