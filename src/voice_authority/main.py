@@ -16,12 +16,24 @@ app = FastAPI(
 )
 
 INDEX_PATH = Path(__file__).with_name("index.html")
+MICROPHONE_WORKLET_PATH = Path(__file__).with_name(
+    "microphone-worklet.js"
+)
 
 
 @app.get("/", response_class=FileResponse)
 async def index() -> FileResponse:
     """Serve the minimal browser boundary for the live voice proof."""
     return FileResponse(INDEX_PATH)
+
+
+@app.get("/microphone-worklet.js", response_class=FileResponse)
+async def microphone_worklet() -> FileResponse:
+    """Serve the browser microphone AudioWorklet module."""
+    return FileResponse(
+        MICROPHONE_WORKLET_PATH,
+        media_type="application/javascript",
+    )
 
 
 @app.get("/health")
