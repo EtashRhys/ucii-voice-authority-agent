@@ -54,11 +54,15 @@ Security separation:
 
 ## Current checkpoint
 
-Objectives 3H.1 through 3H.7 are complete.
+Objectives 3H.1 through 3H.8C are complete.
 
-UCII core synchronized checkpoint:
+UCII core synchronized checkpoints for the protected issuer progression:
 
-`f5c14bd0b7c4313ce7f41114067e9810dc8ec3d7` — `Add enrollment issuance authorization`
+- `f5c14bd0b7c4313ce7f41114067e9810dc8ec3d7` — `Add enrollment issuance authorization`
+- `09d14550cb6ffa86500c34f84a2c37484cf0a399` — `Persist enrollment capabilities durably`
+- `16e60ec2cf085c7423289a3d3cb97e9a4b293009` — `Add protected enrollment capability issuer`
+
+At `16e60ec2cf085c7423289a3d3cb97e9a4b293009`, HEAD == origin/main, ahead/behind is 0/0, and the UCII-core worktree is clean.
 
 Targeted/regression verification at the 3H.7 checkpoint:
 
@@ -69,7 +73,7 @@ Targeted/regression verification at the 3H.7 checkpoint:
 
 Next:
 
-**Objective 3H.8 — Protected Product Enrollment Capability Issuer — NOT STARTED**
+**Objective 3H.8 — Protected Product Enrollment Capability Issuer — 3H.8A / 3H.8B / 3H.8C COMPLETE; 3H.8D NEXT**
 
 ## Logging rules
 
@@ -168,3 +172,57 @@ UCII `main`:
 `f5c14bd0b7c4313ce7f41114067e9810dc8ec3d7`
 
 Objective 3H.8A was read-only. No UCII source changes were made and AssemblyAI was not invoked.
+
+## 2026-09-19 — Objective 3H.8B / 3H.8C implementation findings
+
+### Durable capability state was required before a protected issuer could be correct
+
+Objective 3H.8A identified that process-local `ProductEnrollmentCapabilityService` state could not safely be shared between a separately protected issuer and the public API middleware. Objective 3H.8B resolved that boundary by moving mutable capability lifecycle state to UCII's existing SQLAlchemy persistence layer.
+
+The raw enrollment bearer remains ephemeral at issuance. Durable state retains only the token digest and capability lifecycle metadata.
+
+Synchronized UCII-core checkpoint:
+
+`09d14550cb6ffa86500c34f84a2c37484cf0a399` — `Persist enrollment capabilities durably`
+
+### Authorization consumption and capability mint are separate durable stores
+
+The protected issuer uses the UCII provenance recorder for irreversible one-use issuance-authorization consumption and SQLAlchemy for mutable enrollment-capability state. There is no cross-store transaction.
+
+The fail-closed ordering is therefore:
+
+`VERIFY EXACT ROOT-CONTROLLED AUTHORIZATION → CONSUME AUTHORIZATION → VERIFY INTERNAL PERMIT BINDING → MINT DURABLE CAPABILITY`
+
+This guarantees at-most-one use of the issuance authorization. If the SQL mint fails after authorization consumption, the authorization is burned and retry with the same authorization is rejected. The implementation intentionally does not claim cross-store exactly-once atomicity.
+
+### Caller scope is not minting authority
+
+The protected Unix-socket request carries only finite product/method/path scope. The protected issuer independently loads the root-controlled issuance authorization. Caller-supplied authorization IDs, permits, controller authority, identity IDs, payment evidence, voice evidence, or commands are not accepted as authority to mint.
+
+Synchronized UCII-core checkpoint:
+
+`16e60ec2cf085c7423289a3d3cb97e9a4b293009` — `Add protected enrollment capability issuer`
+
+Complete enrollment security regression at this checkpoint: **73/73 passed**.
+
+### Test-fixture friction: global filesystem monkeypatch was too broad
+
+During protected issuer composition testing, an initial global monkeypatch of `Path.stat` interfered with pytest/runtime callers that use a different `stat()` signature.
+
+Resolution: scope the root-ownership simulation to the enrollment-authorization module by substituting a local `Path` subclass while preserving the real file mode. The authorization fixture is explicitly written with mode `0600`.
+
+Reusable lesson: security-boundary tests should patch the narrowest ownership seam possible rather than globally altering filesystem primitives.
+
+### Test-contract friction: broad exception assertions hid the failure boundary
+
+Early composition tests used broad `pytest.raises(Exception)` assertions for several denial paths. That proved failure but did not prove which security boundary rejected the operation.
+
+Resolution: assertions now distinguish `ProductEnrollmentIssuanceAuthorizationError` for binding/expiry failures from `ProvenanceIntegrityError` for durable duplicate-consumption rejection. The simulated durable mint failure remains explicitly asserted as `RuntimeError`.
+
+Reusable lesson: fail-closed tests should prove the responsible boundary and exception contract, not merely prove that some exception occurred.
+
+### Current activation boundary
+
+Objective 3H.8C is complete and synchronized. The protected issuer code exists, but the production issuer service is not active and the production enrollment-capability schema has not been activated.
+
+Objective 3H.8D is next and begins read-only: inspect runtime user/group ownership, Unix-socket provisioning, issuer provenance storage, root-controlled authorization-artifact location, production database/schema state, and service wiring before any production mutation.

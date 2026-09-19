@@ -453,7 +453,7 @@ Acceptance: **PASS.** Real microphone audio reaches AssemblyAI and finalized use
 
 ## Phase 2 — UCII identity binding
 
-Status: **IN PROGRESS — OBJECTIVES 3H.1 THROUGH 3H.7 COMPLETE; 3H.8 NEXT**
+Status: **IN PROGRESS — OBJECTIVES 3H.1 THROUGH 3H.8C COMPLETE; 3H.8D NEXT**
 
 Goal: bind the proposed action to real UCII identity state through legitimate public/protected UCII boundaries.
 
@@ -476,8 +476,16 @@ Completed inspection establishes:
 - [x] Objective 3H.7 — added root-controlled, exact, short-lived, one-use enrollment issuance authorization plus durable one-use consumption through the existing UCII provenance recorder.
 - [x] Objective 3H.7 verification — 23 issuance-authorization tests, 20 enrollment-capability tests, and 10 existing controller-consumption precedent tests passed (53/53 total); no capability mint, issuer route, identity creation, or authority grant was added.
 - [x] Objective 3H.7 synchronized UCII-core checkpoint: `f5c14bd0b7c4313ce7f41114067e9810dc8ec3d7` (`Add enrollment issuance authorization`), with HEAD == origin/main and clean worktree proven.
-- [ ] Objective 3H.8 — protected Product Enrollment Capability issuer. Accept only the durably consumed issuance permit and mint one raw short-lived enrollment capability through the shared service. **NEXT — NOT STARTED.**
-- [ ] Add durable enrollment-capability state where required so restart/recovery cannot violate one-use semantics.
+- [x] Objective 3H.8A — inspected the protected issuer boundary and proved that process-local capability state could not safely span a separately protected issuer and public API middleware. Froze durable SQL capability state, independent server-side authorization establishment, and separate provenance/capability persistence responsibilities.
+- [x] Objective 3H.8B — moved Product Enrollment Capability lifecycle state to UCII's SQLAlchemy persistence boundary. Raw bearer tokens are returned only at issuance while only token digests are retained; reserve/finalize/release operate against durable shared state.
+- [x] Objective 3H.8B synchronized UCII-core checkpoint: `09d14550cb6ffa86500c34f84a2c37484cf0a399` (`Persist enrollment capabilities durably`), with HEAD == origin/main and clean worktree proven.
+- [x] Objective 3H.8C — added the protected Product Enrollment Capability issuer boundary: finite Unix-socket scope request, independent loading of root-controlled issuance authorization, durable one-use authorization consumption, exact permit-binding verification, and one durable capability mint through `ProductEnrollmentCapabilityService`.
+- [x] Objective 3H.8C security ordering — authorization consumption occurs before capability mint. Provenance authorization consumption and SQL capability persistence are separate durable stores, so the implementation guarantees at-most-one authorization use and fails closed; a SQL mint failure may burn the authorization without minting a capability and is not represented as cross-store exactly-once atomicity.
+- [x] Objective 3H.8C IPC boundary — callers provide only finite `product_id` / `method` / `path` scope. Caller-supplied authorization artifacts, permits, controller authority, identity, payment, voice evidence, or commands are not accepted as minting authority.
+- [x] Objective 3H.8C verification — the complete enrollment security regression passed 73/73 tests, covering the protected IPC contract, protected issuer composition, issuance authorization, capability primitive, durable capability persistence, and middleware enrollment boundary.
+- [x] Objective 3H.8C synchronized UCII-core checkpoint: `16e60ec2cf085c7423289a3d3cb97e9a4b293009` (`Add protected enrollment capability issuer`), with HEAD == origin/main, ahead/behind 0/0, and clean worktree proven.
+- [ ] Objective 3H.8D — inspect production provisioning and activation requirements for the protected enrollment issuer and durable enrollment-capability schema. Preserve the protected trust boundary and perform no activation until runtime user/group, Unix-socket ownership, provenance location, authorization-artifact location, production database state, and service wiring are explicitly proven. **NEXT — READ-ONLY INSPECTION FIRST.**
+- [x] Durable enrollment-capability state implemented by Objective 3H.8B so issuer and middleware share restart-safe one-use lifecycle state through UCII SQLAlchemy persistence.
 - [ ] Complete protected first-use provisioning/binding and transition the established participant to normal credential-bound Voice Authority product entitlement.
 - [ ] Implement the remaining smallest reusable UCII-core corrections identified by 3G where required by the frozen demo lifecycle.
 - [ ] Provision/bind the legitimate HUMAN and Voice Authority participant identities through supported boundaries.
@@ -490,15 +498,17 @@ Acceptance: the application can prove which UCII identities participate in the r
 
 ### Objective 3H economic-bootstrap checkpoint
 
-Objectives 3H.1 through 3H.7 are complete. The implemented economic-access order is:
+Objectives 3H.1 through 3H.8C are complete. The implemented economic-access order is:
 
 `NORMAL PRODUCT ENTITLEMENT → PRODUCT ENROLLMENT CAPABILITY → x402 PAYMENT FALLBACK`
 
 The enrollment capability solves only the pre-identity economic bootstrap problem. It does not create a UCII identity, authenticate a principal, establish HUMAN/controller governance, grant delegated authority, authorize payment, or authorize execution.
 
-The protected issuance chain proven through 3H.7 is:
+The protected issuance chain proven through 3H.8C is:
 
-`ROOT-CONTROLLED EXACT ISSUANCE AUTHORIZATION → VALIDATION → DURABLE ONE-USE CONSUMPTION → NON-SECRET ISSUANCE PERMIT`
+`FINITE PRODUCT/METHOD/PATH REQUEST → PROTECTED ISSUER → ROOT-CONTROLLED EXACT ISSUANCE AUTHORIZATION → VALIDATION → DURABLE ONE-USE AUTHORIZATION CONSUMPTION → EXACT INTERNAL PERMIT BINDING → DURABLE SQL CAPABILITY MINT → ONE RAW SHORT-LIVED ENROLLMENT CAPABILITY`
+
+The caller supplies scope, not authority. The protected issuer independently establishes the root-controlled authorization and does not accept a caller-created permit as proof.
 
 Durable one-use consumption reuses the existing UCII provenance recorder with a deterministic consumption event ID. Reuse of the same issuance authorization is rejected by duplicate-event integrity protection. Product/method/path binding failures and expiry fail before durable consumption.
 
@@ -506,9 +516,11 @@ The security separation remains:
 
 `ISSUANCE AUTHORIZATION != ENROLLMENT CAPABILITY != IDENTITY != AUTHENTICATION != HUMAN GOVERNANCE != DELEGATED AUTHORITY != AUTHORIZATION != ENTITLEMENT != PAYMENT != EXECUTION`
 
-Objective 3H.8 is the next boundary and has not started:
+Objective 3H.8C is implemented and synchronized at UCII-core checkpoint `16e60ec2cf085c7423289a3d3cb97e9a4b293009`.
 
-`DURABLY CONSUMED ISSUANCE PERMIT → PROTECTED ISSUER → ProductEnrollmentCapabilityService.issue() → ONE RAW SHORT-LIVED ENROLLMENT CAPABILITY`
+The authorization-consumption provenance store and mutable SQL capability store remain deliberately separate. The protected issuer consumes the one-use authorization before minting. This provides fail-closed at-most-one authorization use; it does not claim cross-store exactly-once atomicity.
+
+Objective 3H.8D is next: read-only production provisioning and activation inspection. The protected issuer service is not yet active and the production enrollment-capability schema has not yet been activated.
 
 The ordinary browser, Voice Agent, AssemblyAI runtime, transcript/model layer, payment path, and anonymous product request must not acquire reusable capability-minting authority.
 
