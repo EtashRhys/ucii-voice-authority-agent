@@ -90,3 +90,81 @@ Capture real issues involving, for example:
 For each meaningful friction point, capture the task, expected behavior, actual behavior, impact, workaround/resolution, and reusable lesson while the evidence is fresh.
 
 Do not manufacture friction for a competition bonus or narrative. Record what actually happens, when it happens, and how it affected the build.
+
+---
+
+### Protected issuer cannot share process-local enrollment capability state
+
+**Objective:** 3H.8 — Protected Product Enrollment Capability issuer
+
+**Status:** RESOLVED ARCHITECTURALLY — IMPLEMENTATION PENDING
+
+**Observation**
+
+Objective 3H.8A established that `ProductEnrollmentCapabilityService` currently retains enrollment capability state only in process memory:
+
+- `_capabilities` is an in-memory dictionary;
+- `_reserved` is an in-memory set;
+- concurrency is protected only by a process-local `threading.Lock`;
+- production `X402Middleware` constructs its own `ProductEnrollmentCapabilityService` when no service is injected.
+
+A separately protected issuer process therefore cannot safely mint through its own instance of the current service and expect the public API middleware to observe the resulting capability.
+
+Moving capability minting into the ordinary public API process merely to share the Python object would weaken the protected issuance boundary.
+
+The inspection also confirmed that `ProductEnrollmentIssuancePermit` is a non-secret Python value and must not itself be treated as proof across the protected issuer trust boundary. The protected issuer must independently establish the authoritative issuance conditions rather than trusting a caller-constructed permit.
+
+**Impact**
+
+A naive protected-daemon implementation would create one of two failures:
+
+1. the protected issuer would mint capability state that is invisible to the public API process; or
+2. capability-minting authority would have to move into the public API process, collapsing the intended protection boundary.
+
+Process-local capability state also does not survive restart and therefore cannot provide the required durable single-use lifecycle.
+
+**Existing UCII precedent**
+
+UCII already provides the required architectural patterns:
+
+- settlement receipts use SQLAlchemy persistence and a unique identifier as the atomic concurrency boundary;
+- entitlement replay uses durable `RESERVED -> CONSUMED` state with release after failed downstream execution;
+- the protected controller-lifecycle service accepts only finite non-secret intent and independently establishes protected authority rather than accepting raw authority from its caller;
+- `ProvenanceRecorder` provides durable append-only one-use issuance-authorization consumption, but is not the appropriate mutable operational store for capability reservation/finalization state.
+
+**Resolution**
+
+Use two deliberately separate durable concerns:
+
+1. `ProvenanceRecorder` remains the authoritative durable one-use exhaustion boundary for Product Enrollment Capability issuance authorization.
+2. Product Enrollment Capability operational state moves to UCII's existing SQLAlchemy persistence boundary.
+
+The durable capability lifecycle preserves the existing behavioral contract:
+
+`ISSUED -> RESERVED -> CONSUMED`
+
+A failed downstream operation releases a valid `RESERVED` capability back to `ISSUED`. Expired capability state fails closed.
+
+The raw bearer token is returned only at issuance. Only its digest may be persisted.
+
+The protected issuer must independently establish and consume the exact root-controlled issuance authorization. It must not trust possession of a caller-created `ProductEnrollmentIssuancePermit` as authorization to mint.
+
+**Implementation order**
+
+1. Objective 3H.8B — durable Product Enrollment Capability state contract.
+2. Verify issue/reserve/finalize/release behavior, concurrency, restart reconstruction, token-digest-only persistence, and existing x402 regressions.
+3. Objective 3H.8C — protected issuer daemon / finite IPC boundary.
+4. Connect protected issuance to the durable capability service.
+5. Re-prove that browser, Voice Agent, AssemblyAI runtime, model/transcript layer, payment path, and anonymous product request do not possess reusable capability-minting authority.
+
+**Security invariant**
+
+`ISSUANCE AUTHORIZATION != ENROLLMENT CAPABILITY != IDENTITY != AUTHENTICATION != HUMAN GOVERNANCE != DELEGATED AUTHORITY != AUTHORIZATION != ENTITLEMENT != PAYMENT != EXECUTION`
+
+**Inspection checkpoint**
+
+UCII `main`:
+
+`f5c14bd0b7c4313ce7f41114067e9810dc8ec3d7`
+
+Objective 3H.8A was read-only. No UCII source changes were made and AssemblyAI was not invoked.
