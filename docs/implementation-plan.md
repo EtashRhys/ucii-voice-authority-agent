@@ -453,7 +453,7 @@ Acceptance: **PASS.** Real microphone audio reaches AssemblyAI and finalized use
 
 ## Phase 2 — UCII identity binding
 
-Status: **IN PROGRESS — OBJECTIVE 3 INSPECTION THROUGH 3G COMPLETE**
+Status: **IN PROGRESS — OBJECTIVES 3H.1 THROUGH 3H.7 COMPLETE; 3H.8 NEXT**
 
 Goal: bind the proposed action to real UCII identity state through legitimate public/protected UCII boundaries.
 
@@ -467,7 +467,19 @@ Completed inspection establishes:
 - [x] Provisioning execution and service-entitlement contracts inspected.
 - [x] HUMAN bootstrap, recovery, controller lifecycle, succession/lockout, and product-entitlement gaps inspected.
 - [x] HUMAN lifecycle + Voice Authority product-scoped entitlement design frozen from Objective 3G findings.
-- [ ] Implement the smallest required reusable UCII-core corrections identified by 3G.
+- [x] Objective 3H.1 — inspected the credential-bound service-entitlement contract and proved it cannot solve pre-identity bootstrap because it requires an established subject identity and active bound credential.
+- [x] Objective 3H.2 — inspected the x402 insertion boundary; POST /v1/identity remains economically gated and x402 remains the fallback rather than making identity creation anonymously free.
+- [x] Objective 3H.3 — added the Product Enrollment Capability primitive: cryptographically unguessable, short-lived, single-purpose, one-use, and exactly bound to product/method/path, with digest-only token retention.
+- [x] Objective 3H.4 — added reservation/finalize/release lifecycle semantics so concurrent/repeated use fails while downstream failure can safely release a reservation.
+- [x] Objective 3H.5 — integrated enrollment capability into x402 middleware with the frozen economic order: normal product entitlement → product enrollment capability → x402 payment fallback.
+- [x] Objective 3H.6 — added shared ProductEnrollmentCapabilityService injection so the eventual protected issuer and middleware can share capability state without adding an issuer route or alternate trust root.
+- [x] Objective 3H.7 — added root-controlled, exact, short-lived, one-use enrollment issuance authorization plus durable one-use consumption through the existing UCII provenance recorder.
+- [x] Objective 3H.7 verification — 23 issuance-authorization tests, 20 enrollment-capability tests, and 10 existing controller-consumption precedent tests passed (53/53 total); no capability mint, issuer route, identity creation, or authority grant was added.
+- [x] Objective 3H.7 synchronized UCII-core checkpoint: `f5c14bd0b7c4313ce7f41114067e9810dc8ec3d7` (`Add enrollment issuance authorization`), with HEAD == origin/main and clean worktree proven.
+- [ ] Objective 3H.8 — protected Product Enrollment Capability issuer. Accept only the durably consumed issuance permit and mint one raw short-lived enrollment capability through the shared service. **NEXT — NOT STARTED.**
+- [ ] Add durable enrollment-capability state where required so restart/recovery cannot violate one-use semantics.
+- [ ] Complete protected first-use provisioning/binding and transition the established participant to normal credential-bound Voice Authority product entitlement.
+- [ ] Implement the remaining smallest reusable UCII-core corrections identified by 3G where required by the frozen demo lifecycle.
 - [ ] Provision/bind the legitimate HUMAN and Voice Authority participant identities through supported boundaries.
 - [ ] Establish credential/authentication and protected governance relationships.
 - [ ] Establish Voice Authority product-scoped economic entitlement without creating general UCII free access.
@@ -475,6 +487,32 @@ Completed inspection establishes:
 - [ ] Surface real verification/governance state in the proof UI.
 
 Acceptance: the application can prove which UCII identities participate in the request and who may govern the Voice Agent, independently of transcript/model assertions, entitlement, or payment.
+
+### Objective 3H economic-bootstrap checkpoint
+
+Objectives 3H.1 through 3H.7 are complete. The implemented economic-access order is:
+
+`NORMAL PRODUCT ENTITLEMENT → PRODUCT ENROLLMENT CAPABILITY → x402 PAYMENT FALLBACK`
+
+The enrollment capability solves only the pre-identity economic bootstrap problem. It does not create a UCII identity, authenticate a principal, establish HUMAN/controller governance, grant delegated authority, authorize payment, or authorize execution.
+
+The protected issuance chain proven through 3H.7 is:
+
+`ROOT-CONTROLLED EXACT ISSUANCE AUTHORIZATION → VALIDATION → DURABLE ONE-USE CONSUMPTION → NON-SECRET ISSUANCE PERMIT`
+
+Durable one-use consumption reuses the existing UCII provenance recorder with a deterministic consumption event ID. Reuse of the same issuance authorization is rejected by duplicate-event integrity protection. Product/method/path binding failures and expiry fail before durable consumption.
+
+The security separation remains:
+
+`ISSUANCE AUTHORIZATION != ENROLLMENT CAPABILITY != IDENTITY != AUTHENTICATION != HUMAN GOVERNANCE != DELEGATED AUTHORITY != AUTHORIZATION != ENTITLEMENT != PAYMENT != EXECUTION`
+
+Objective 3H.8 is the next boundary and has not started:
+
+`DURABLY CONSUMED ISSUANCE PERMIT → PROTECTED ISSUER → ProductEnrollmentCapabilityService.issue() → ONE RAW SHORT-LIVED ENROLLMENT CAPABILITY`
+
+The ordinary browser, Voice Agent, AssemblyAI runtime, transcript/model layer, payment path, and anonymous product request must not acquire reusable capability-minting authority.
+
+
 
 ## Objective 2 — Finalized turn to bounded structured operation
 
