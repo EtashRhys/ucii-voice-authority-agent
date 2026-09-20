@@ -453,7 +453,7 @@ Acceptance: **PASS.** Real microphone audio reaches AssemblyAI and finalized use
 
 ## Phase 2 — UCII identity binding
 
-Status: **IN PROGRESS — OBJECTIVES 3H.1 THROUGH 3H.8C COMPLETE; 3H.8D NEXT**
+Status: **IN PROGRESS — OBJECTIVES 3H.1 THROUGH 3H.8D COMPLETE; FIRST-USE BINDING / NORMAL PRODUCT ENTITLEMENT NEXT**
 
 Goal: bind the proposed action to real UCII identity state through legitimate public/protected UCII boundaries.
 
@@ -484,7 +484,7 @@ Completed inspection establishes:
 - [x] Objective 3H.8C IPC boundary — callers provide only finite `product_id` / `method` / `path` scope. Caller-supplied authorization artifacts, permits, controller authority, identity, payment, voice evidence, or commands are not accepted as minting authority.
 - [x] Objective 3H.8C verification — the complete enrollment security regression passed 73/73 tests, covering the protected IPC contract, protected issuer composition, issuance authorization, capability primitive, durable capability persistence, and middleware enrollment boundary.
 - [x] Objective 3H.8C synchronized UCII-core checkpoint: `16e60ec2cf085c7423289a3d3cb97e9a4b293009` (`Add protected enrollment capability issuer`), with HEAD == origin/main, ahead/behind 0/0, and clean worktree proven.
-- [ ] Objective 3H.8D — inspect production provisioning and activation requirements for the protected enrollment issuer and durable enrollment-capability schema. Preserve the protected trust boundary and perform no activation until runtime user/group, Unix-socket ownership, provenance location, authorization-artifact location, production database state, and service wiring are explicitly proven. **NEXT — READ-ONLY INSPECTION FIRST.**
+- [x] Objective 3H.8D — completed production provisioning and activation of the protected enrollment issuer and durable enrollment-capability schema through verified runtime/database/service boundaries; completed one real protected Voice Authority enrollment; established dedicated lifecycle-compatible Voice controller-authority custody; securely removed consumed temporary enrollment artifacts; and proved issuer enabled/active steady state without repointing the existing Guardian lifecycle service.
 - [x] Durable enrollment-capability state implemented by Objective 3H.8B so issuer and middleware share restart-safe one-use lifecycle state through UCII SQLAlchemy persistence.
 - [ ] Complete protected first-use provisioning/binding and transition the established participant to normal credential-bound Voice Authority product entitlement.
 - [ ] Implement the remaining smallest reusable UCII-core corrections identified by 3G where required by the frozen demo lifecycle.
@@ -498,7 +498,7 @@ Acceptance: the application can prove which UCII identities participate in the r
 
 ### Objective 3H economic-bootstrap checkpoint
 
-Objectives 3H.1 through 3H.8C are complete. The implemented economic-access order is:
+Objectives 3H.1 through 3H.8D are complete. The implemented and production-activated economic-access order is:
 
 `NORMAL PRODUCT ENTITLEMENT → PRODUCT ENROLLMENT CAPABILITY → x402 PAYMENT FALLBACK`
 
@@ -520,7 +520,13 @@ Objective 3H.8C is implemented and synchronized at UCII-core checkpoint `16e60ec
 
 The authorization-consumption provenance store and mutable SQL capability store remain deliberately separate. The protected issuer consumes the one-use authorization before minting. This provides fail-closed at-most-one authorization use; it does not claim cross-store exactly-once atomicity.
 
-Objective 3H.8D is next: read-only production provisioning and activation inspection. The protected issuer service is not yet active and the production enrollment-capability schema has not yet been activated.
+Objective 3H.8D is complete. Production provisioning and activation were inspected before mutation, the durable enrollment-capability schema and protected issuer were activated through the verified production boundary, and one real protected Voice Authority enrollment completed successfully.
+
+The established Voice Authority identity is `9df0ff8a-25d0-4340-be32-05e8263f1277`. Its controller authority is held in the dedicated lifecycle-compatible encrypted custody domain `/etc/ucii-voice-authority/controller-authority.cred`; controller-authority plaintext is not recorded here.
+
+UCII-core production-activation closure is synchronized at `37cbf25e78051c131e471de387c036bea3b27ed6` (`Record Voice Authority production activation`). The later shared-core custody friction findings are synchronized at `ae6f340ec7cf7041876a4743a6954b15694479ea` (`Record Voice Authority custody friction`).
+
+Next: complete protected first-use provisioning/binding for the established participant and transition it to normal credential-bound Voice Authority product entitlement.
 
 The ordinary browser, Voice Agent, AssemblyAI runtime, transcript/model layer, payment path, and anonymous product request must not acquire reusable capability-minting authority.
 

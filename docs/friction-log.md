@@ -46,7 +46,7 @@ Economic evaluation order:
 
 Protected first-use issuance path through the current checkpoint:
 
-`ROOT-CONTROLLED EXACT ISSUANCE AUTHORIZATION → VALIDATION → DURABLE ONE-USE CONSUMPTION → NON-SECRET ISSUANCE PERMIT → [NEXT: PROTECTED ISSUER] → PRODUCT ENROLLMENT CAPABILITY`
+`ROOT-CONTROLLED EXACT ISSUANCE AUTHORIZATION → VALIDATION → DURABLE ONE-USE CONSUMPTION → NON-SECRET ISSUANCE PERMIT → PROTECTED ISSUER → DURABLE PRODUCT ENROLLMENT CAPABILITY → ONE-USE ENROLLMENT → ESTABLISHED UCII PARTICIPANT`
 
 Security separation:
 
@@ -54,7 +54,7 @@ Security separation:
 
 ## Current checkpoint
 
-Objectives 3H.1 through 3H.8C are complete.
+Objectives 3H.1 through 3H.8D are complete.
 
 UCII core synchronized checkpoints for the protected issuer progression:
 
@@ -73,7 +73,7 @@ Targeted/regression verification at the 3H.7 checkpoint:
 
 Next:
 
-**Objective 3H.8 — Protected Product Enrollment Capability Issuer — 3H.8A / 3H.8B / 3H.8C COMPLETE; 3H.8D NEXT**
+**Objective 3H.8 — Protected Product Enrollment Capability Issuer — 3H.8A / 3H.8B / 3H.8C / 3H.8D COMPLETE**
 
 ## Logging rules
 
@@ -223,6 +223,29 @@ Reusable lesson: fail-closed tests should prove the responsible boundary and exc
 
 ### Current activation boundary
 
-Objective 3H.8C is complete and synchronized. The protected issuer code exists, but the production issuer service is not active and the production enrollment-capability schema has not been activated.
+Objective 3H.8D is complete.
 
-Objective 3H.8D is next and begins read-only: inspect runtime user/group ownership, Unix-socket provisioning, issuer provenance storage, root-controlled authorization-artifact location, production database/schema state, and service wiring before any production mutation.
+Production activation was inspected before mutation and then completed through the verified protected boundary. The durable enrollment-capability schema is active, the protected issuer is enabled and active, and one real protected Voice Authority enrollment succeeded.
+
+Established Voice Authority identity:
+
+`9df0ff8a-25d0-4340-be32-05e8263f1277`
+
+Dedicated controller-authority custody:
+
+`/etc/ucii-voice-authority/controller-authority.cred`
+
+The initially encrypted custody representation exposed a real integration gap: host encryption alone did not prove lifecycle-loader compatibility. The credential was corrected without rotating the underlying authority or mutating authoritative UCII database state, and the real lifecycle loader accepted the corrected identity-bound document before and after atomic replacement.
+
+The supported custody path also exposed a second reusable gap: there is no normal non-rotating repair ceremony for an already-promoted malformed canonical credential when the underlying controller authority remains valid. These shared-core findings are preserved in the UCII engineering friction record.
+
+UCII-core checkpoints:
+
+- `37cbf25e78051c131e471de387c036bea3b27ed6` — `Record Voice Authority production activation`
+- `ae6f340ec7cf7041876a4743a6954b15694479ea` — `Record Voice Authority custody friction`
+
+Consumed temporary enrollment artifacts were removed after durable custody proof. The existing Guardian lifecycle service remains bound to Guardian custody and was not repointed for Voice Authority.
+
+Next engineering boundary:
+
+**Complete protected first-use provisioning/binding for the established participant and transition it to normal credential-bound Voice Authority product entitlement.**
