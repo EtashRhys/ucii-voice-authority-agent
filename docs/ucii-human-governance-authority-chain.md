@@ -1310,3 +1310,43 @@ UCII-core primitive is implemented.
 The frozen Human Authority Ceremony contract remains historical/frozen and is
 not modified by this checkpoint. These newly discovered lifecycle requirements
 are recorded here as the current governing implementation constraint.
+
+
+### Cross-identity lifecycle requirement
+
+The Voice Authority discovery also raises a UCII-wide machine/agent lifecycle
+question that must be included in Unit 3G.
+
+UCII already supports real cryptographic enrollment and operation for
+non-HUMAN identities. That is not the same as proving a complete governance,
+recovery, succession, and destructive-reset lifecycle for those identities.
+
+The design must preserve:
+
+    machine identity != governance authority
+
+An AI agent, robot, device, or service proving possession of its own credential
+must not automatically gain ultimate ownership/governance authority over
+itself.
+
+Unit 3G must inspect how UCII currently handles machine-side credential loss,
+credential/controller compromise, controller replacement, authority
+revocation, recovery, transfer of legitimate control, destructive reset, and
+stale-authority invalidation.
+
+Where possible, UCII should prefer one reusable governance-domain lifecycle
+rather than independent HUMAN, AI_AGENT, ROBOT, DEVICE, SERVICE, and
+ORGANIZATION bootstrap/reset systems.
+
+The Voice implementation must remain narrowly scoped to what the demo needs,
+but the UCII-core primitive it consumes must not create a HUMAN-only dead end
+that later requires parallel trust roots for machines.
+
+Accordingly, Unit 3G must determine whether governance generation/epoch,
+recovery, succession, and destructive reset belong at a shared governance-domain
+layer and identify which machine-side guarantees already exist versus which
+remain future UCII-core work.
+
+This requirement does not assert that machine-side recovery or factory reset is
+currently missing in full. That conclusion requires the read-only Unit 3G
+inspection.
