@@ -36,6 +36,10 @@ INDEX_PATH = Path(__file__).with_name("index.html")
 MICROPHONE_WORKLET_PATH = Path(__file__).with_name(
     "microphone-worklet.js"
 )
+VOICE_AUTHORITY_CONSOLE_MASTER_PATH = (
+    Path(__file__).with_name("assets")
+    / "voice-authority-console-master.png"
+)
 
 
 class AssemblyAIToolProposal(BaseModel):
@@ -94,6 +98,18 @@ def _first_human_bootstrap_client() -> FirstHumanBootstrapClient:
 async def index() -> FileResponse:
     """Serve the minimal browser boundary for the live voice proof."""
     return FileResponse(INDEX_PATH)
+
+
+@app.get(
+    "/voice-authority-console-master.png",
+    response_class=FileResponse,
+)
+async def voice_authority_console_master() -> FileResponse:
+    """Serve the canonical Voice Authority console artwork."""
+    return FileResponse(
+        VOICE_AUTHORITY_CONSOLE_MASTER_PATH,
+        media_type="image/png",
+    )
 
 
 @app.get("/microphone-worklet.js", response_class=FileResponse)
