@@ -1,0 +1,2075 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+    <title>UCII Voice Authority Console</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #03070b;
+            --panel: rgba(6, 15, 23, 0.94);
+            --panel-2: rgba(8, 20, 30, 0.96);
+            --line: #25445b;
+            --line-soft: rgba(91, 157, 199, 0.2);
+            --text: #f2f7fb;
+            --muted: #9bb6ca;
+            --orange: #ff8a1f;
+            --orange-hot: #ffad42;
+            --orange-soft: rgba(255, 138, 31, 0.12);
+            --blue: #36c8ff;
+            --blue-soft: rgba(54, 200, 255, 0.11);
+            --green: #22efb0;
+            --red: #ff5864;
+            --red-soft: rgba(255, 88, 100, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            min-height: 100%;
+        }
+
+        body {
+            background:
+                radial-gradient(
+                    circle at 50% -10%,
+                    rgba(41, 155, 224, 0.13),
+                    transparent 30rem
+                ),
+                linear-gradient(180deg, #04101a, var(--bg) 38%);
+            color: var(--text);
+            font-family:
+                Inter, ui-sans-serif, system-ui, -apple-system,
+                BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        button {
+            border: 1px solid var(--line);
+            border-radius: 0.45rem;
+            padding: 0.62rem 0.8rem;
+            background: #0d1b27;
+            color: var(--text);
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        button:hover:not(:disabled) {
+            border-color: var(--orange);
+            background: var(--orange-soft);
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+
+        .masthead {
+            height: 8.4rem;
+            display: grid;
+            grid-template-columns: 17rem 24rem 1fr 17rem 12rem;
+            align-items: center;
+            gap: 1.2rem;
+            padding: 0 1.4rem;
+            border-bottom: 1px solid var(--line);
+            background:
+                linear-gradient(
+                    100deg,
+                    rgba(255, 138, 31, 0.04),
+                    rgba(54, 200, 255, 0.06)
+                );
+        }
+
+        .ucii-brand,
+        .assembly-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .ucii-logo {
+            width: 3.2rem;
+            height: 3.2rem;
+            display: grid;
+            place-items: center;
+            border: 3px solid white;
+            border-radius: 1rem;
+            font-weight: 900;
+            font-size: 1.4rem;
+        }
+
+        .ucii-word {
+            font-size: 2rem;
+            font-weight: 900;
+            letter-spacing: 0.05em;
+        }
+
+        .brand-sub {
+            display: block;
+            margin-top: 0.2rem;
+            color: var(--muted);
+            font-size: 0.66rem;
+            line-height: 1.35;
+            letter-spacing: 0.06em;
+        }
+
+        .assembly-mark {
+            font-size: 3rem;
+            line-height: 1;
+            font-weight: 900;
+            color: var(--blue);
+            text-shadow: 0 0 1.2rem rgba(54, 200, 255, 0.45);
+        }
+
+        .assembly-name {
+            font-size: 2rem;
+            font-weight: 850;
+        }
+
+        .energy {
+            height: 4.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .energy::before,
+        .energy::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 2px;
+            transform-origin: center;
+        }
+
+        .energy::before {
+            background: var(--orange);
+            box-shadow:
+                0 0 0.7rem var(--orange),
+                0 0 1.8rem rgba(255, 138, 31, 0.7);
+            transform: rotate(-7deg);
+        }
+
+        .energy::after {
+            background: var(--blue);
+            box-shadow:
+                0 0 0.7rem var(--blue),
+                0 0 1.8rem rgba(54, 200, 255, 0.7);
+            transform: rotate(7deg);
+        }
+
+        .mast-message {
+            font-size: 0.9rem;
+            line-height: 1.45;
+            letter-spacing: 0.05em;
+        }
+
+        .mast-message strong {
+            color: var(--orange);
+        }
+
+        .shell {
+            min-height: calc(100vh - 8.4rem);
+            display: grid;
+            grid-template-columns: 15.5rem minmax(50rem, 1fr) 17.5rem;
+        }
+
+        .sidebar {
+            padding: 1rem 0.75rem;
+            border-right: 1px solid var(--line);
+            background: rgba(3, 9, 14, 0.9);
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            width: 100%;
+            margin-bottom: 0.4rem;
+            padding: 0.8rem 0.85rem;
+            border: 1px solid transparent;
+            border-radius: 0.45rem;
+            color: #dceaf4;
+            font-size: 0.88rem;
+        }
+
+        .nav-item span {
+            width: 1.4rem;
+            color: var(--blue);
+            text-align: center;
+        }
+
+        .nav-item.active {
+            border-color: var(--orange);
+            background:
+                linear-gradient(
+                    90deg,
+                    rgba(255, 138, 31, 0.25),
+                    rgba(255, 138, 31, 0.04)
+                );
+            box-shadow: 0 0 1.2rem rgba(255, 138, 31, 0.14);
+        }
+
+        .nav-item.active span {
+            color: var(--orange);
+        }
+
+        .sidebar-quote {
+            margin: 3rem 0.75rem 0;
+            color: #d9e8f2;
+            font-size: 0.86rem;
+            line-height: 1.55;
+            font-style: italic;
+        }
+
+        .sidebar-quote small {
+            display: block;
+            margin-top: 0.8rem;
+            color: var(--muted);
+            font-style: normal;
+        }
+
+        .workspace {
+            min-width: 0;
+            padding: 0.9rem;
+        }
+
+        .console-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 0.7rem;
+            padding: 0.2rem 0.25rem 0.65rem;
+            border-bottom: 1px solid var(--line-soft);
+        }
+
+        .console-head h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            letter-spacing: 0.03em;
+        }
+
+        .console-head p {
+            margin: 0.2rem 0 0;
+            color: var(--muted);
+            font-size: 0.72rem;
+            letter-spacing: 0.05em;
+        }
+
+        .live {
+            margin-left: 0.5rem;
+            color: var(--green);
+            font-size: 0.8rem;
+        }
+
+        .secure {
+            padding: 0.55rem 0.8rem;
+            border: 1px solid var(--blue);
+            border-radius: 0.45rem;
+            color: #dff6ff;
+            background: var(--blue-soft);
+            font-size: 0.72rem;
+            font-weight: 800;
+        }
+
+        .voice-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.65rem;
+        }
+
+        .panel {
+            min-width: 0;
+            border: 1px solid var(--line);
+            border-radius: 0.55rem;
+            background:
+                linear-gradient(
+                    180deg,
+                    rgba(14, 31, 44, 0.92),
+                    rgba(5, 14, 22, 0.96)
+                );
+            box-shadow: inset 0 0 1.5rem rgba(33, 105, 148, 0.05);
+        }
+
+        .panel.orange {
+            border-top-color: var(--orange);
+        }
+
+        .panel.blue {
+            border-top-color: var(--blue);
+        }
+
+        .panel-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.7rem;
+            align-items: center;
+            padding: 0.65rem 0.75rem 0.45rem;
+            font-size: 0.75rem;
+            font-weight: 850;
+            letter-spacing: 0.035em;
+        }
+
+        .panel-head .state {
+            color: var(--muted);
+            font-size: 0.65rem;
+        }
+
+        .orange .panel-head .state {
+            color: var(--orange-hot);
+        }
+
+        .blue .panel-head .state {
+            color: var(--blue);
+        }
+
+        .wave {
+            height: 3.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            margin: 0.1rem 0.75rem 0.35rem;
+            overflow: hidden;
+        }
+
+        .wave i {
+            display: block;
+            width: 3px;
+            border-radius: 2px;
+            background: currentColor;
+            box-shadow: 0 0 0.5rem currentColor;
+        }
+
+        .wave i:nth-child(4n+1) { height: 18%; }
+        .wave i:nth-child(4n+2) { height: 54%; }
+        .wave i:nth-child(4n+3) { height: 90%; }
+        .wave i:nth-child(4n)   { height: 35%; }
+
+        .orange-wave {
+            color: var(--orange);
+        }
+
+        .blue-wave {
+            color: var(--blue);
+        }
+
+        .voice-detail {
+            min-height: 3.3rem;
+            margin: 0 0.75rem 0.7rem;
+            padding: 0.55rem 0.65rem;
+            border-top: 1px solid var(--line-soft);
+            color: #eef7fd;
+            font-size: 0.78rem;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+        }
+
+        .voice-detail small {
+            display: block;
+            margin-bottom: 0.25rem;
+            color: var(--muted);
+            font-size: 0.6rem;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+        }
+
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            padding: 0 0.75rem 0.7rem;
+        }
+
+        .control-row button {
+            padding: 0.45rem 0.6rem;
+            font-size: 0.68rem;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 0.9fr 1.05fr 0.9fr;
+            gap: 0.65rem;
+            margin-top: 0.65rem;
+        }
+
+        .stack {
+            display: grid;
+            gap: 0.65rem;
+            align-content: start;
+        }
+
+        .evidence-list {
+            margin: 0;
+            padding: 0 0.75rem 0.65rem;
+        }
+
+        .evidence-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 0.7rem;
+            padding: 0.42rem 0;
+            border-top: 1px solid var(--line-soft);
+            font-size: 0.7rem;
+        }
+
+        .evidence-row:first-child {
+            border-top: 0;
+        }
+
+        .evidence-row span:first-child {
+            color: var(--muted);
+        }
+
+        .good {
+            color: var(--green);
+        }
+
+        .warn {
+            color: var(--orange);
+        }
+
+        .deny {
+            color: var(--red);
+        }
+
+        .neutral {
+            color: #d8e4ec;
+        }
+
+        .core {
+            min-height: 23.2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .orbital {
+            position: relative;
+            width: min(18rem, 90%);
+            aspect-ratio: 1;
+            display: grid;
+            place-items: center;
+            border: 2px solid rgba(54, 200, 255, 0.5);
+            border-radius: 50%;
+            background:
+                radial-gradient(
+                    circle,
+                    rgba(22, 76, 110, 0.4),
+                    rgba(4, 12, 19, 0.8) 55%,
+                    transparent 56%
+                );
+            box-shadow:
+                0 0 2.8rem rgba(54, 200, 255, 0.22),
+                inset 0 0 2.5rem rgba(255, 138, 31, 0.14);
+        }
+
+        .orbital::before,
+        .orbital::after {
+            content: "";
+            position: absolute;
+            inset: 8%;
+            border-radius: 50%;
+            border: 2px solid;
+            transform: rotate(45deg) scaleY(0.45);
+        }
+
+        .orbital::before {
+            border-color: var(--orange);
+            box-shadow: 0 0 1.5rem rgba(255, 138, 31, 0.6);
+        }
+
+        .orbital::after {
+            border-color: var(--blue);
+            box-shadow: 0 0 1.5rem rgba(54, 200, 255, 0.6);
+            transform: rotate(-45deg) scaleY(0.45);
+        }
+
+        .core-lockup {
+            position: relative;
+            z-index: 2;
+            font-size: 1.2rem;
+            font-weight: 900;
+            line-height: 1.5;
+        }
+
+        .core-lockup .a {
+            color: var(--blue);
+            font-size: 2.8rem;
+            text-shadow: 0 0 1rem rgba(54, 200, 255, 0.55);
+        }
+
+        .core-lockup .x {
+            color: var(--muted);
+            font-size: 1.2rem;
+        }
+
+        .core-lockup .u {
+            color: white;
+            font-size: 2rem;
+            letter-spacing: 0.06em;
+        }
+
+        .core-thesis {
+            margin: 0.9rem 0 0;
+            color: #d9e9f3;
+            font-size: 0.68rem;
+            letter-spacing: 0.08em;
+        }
+
+        .callout {
+            margin: 0.55rem 0.7rem 0.7rem;
+            padding: 0.55rem 0.65rem;
+            border: 1px solid rgba(255, 88, 100, 0.55);
+            border-radius: 0.4rem;
+            background: var(--red-soft);
+            color: #ff9da4;
+            font-size: 0.67rem;
+            line-height: 1.4;
+        }
+
+        .rightbar {
+            padding: 0.9rem 0.75rem;
+            border-left: 1px solid var(--line);
+            background: rgba(3, 9, 14, 0.9);
+        }
+
+        .rightbar .panel {
+            margin-bottom: 0.7rem;
+        }
+
+        .quick-actions {
+            padding: 0 0.65rem 0.65rem;
+        }
+
+        .quick-actions button {
+            width: 100%;
+            margin-top: 0.4rem;
+            text-align: left;
+            font-size: 0.72rem;
+        }
+
+        .speechbar {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 0.75rem;
+            align-items: center;
+            margin-top: 0.65rem;
+            padding: 0.6rem 0.8rem;
+            border: 1px solid var(--orange);
+            border-radius: 2rem;
+            background:
+                linear-gradient(
+                    90deg,
+                    rgba(255, 138, 31, 0.12),
+                    rgba(54, 200, 255, 0.04)
+                );
+            box-shadow: 0 0 1.2rem rgba(255, 138, 31, 0.12);
+        }
+
+        .mic-orb {
+            width: 2.7rem;
+            height: 2.7rem;
+            display: grid;
+            place-items: center;
+            border: 2px solid var(--orange);
+            border-radius: 50%;
+            color: var(--orange);
+            font-size: 1.25rem;
+        }
+
+        .speechbar strong {
+            display: block;
+            font-size: 0.8rem;
+        }
+
+        .speechbar small {
+            color: var(--muted);
+            font-size: 0.64rem;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-around;
+            gap: 1rem;
+            padding: 0.7rem;
+            color: var(--muted);
+            font-size: 0.58rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .deferred {
+            display: none;
+        }
+
+        @media (max-width: 1250px) {
+            .masthead {
+                grid-template-columns: 1fr 1fr;
+                height: auto;
+                padding: 1rem;
+            }
+
+            .energy,
+            .mast-message {
+                display: none;
+            }
+
+            .shell {
+                grid-template-columns: 12rem 1fr;
+            }
+
+            .rightbar {
+                grid-column: 1 / -1;
+                border-top: 1px solid var(--line);
+                border-left: 0;
+            }
+
+            .rightbar {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.65rem;
+            }
+        }
+
+        @media (max-width: 850px) {
+            .masthead,
+            .shell,
+            .voice-row,
+            .main-grid,
+            .rightbar {
+                display: block;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .workspace,
+            .rightbar {
+                padding: 0.65rem;
+            }
+
+            .panel,
+            .rightbar .panel {
+                margin-bottom: 0.65rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="masthead">
+        <div class="ucii-brand">
+            <div class="ucii-logo">U</div>
+            <div>
+                <div class="ucii-word">UCII</div>
+                <span class="brand-sub">
+                    UNIVERSAL CRYPTOGRAPHIC<br>
+                    IDENTITY INFRASTRUCTURE
+                </span>
+            </div>
+        </div>
+
+        <div class="assembly-brand">
+            <div class="assembly-mark">A</div>
+            <div>
+                <div class="assembly-name">AssemblyAI</div>
+                <span class="brand-sub">
+                    SPEECH TO MEANING.<br>
+                    A MORE HUMAN TOMORROW.
+                </span>
+            </div>
+        </div>
+
+        <div class="energy" aria-hidden="true"></div>
+
+        <div class="mast-message">
+            REAL VOICE.<br>
+            REAL IDENTITY.<br>
+            <strong>REAL AUTHORITY.</strong><br>
+            <span class="brand-sub">A MORE HUMAN TOMORROW.</span>
+        </div>
+
+        <div class="mast-message">
+            TRUSTED.<br>
+            VERIFIED.<br>
+            BOUND.<br>
+            AUDITABLE.<br>
+            <strong>REAL.</strong>
+        </div>
+    </header>
+
+    <div class="shell">
+        <aside class="sidebar">
+            <div class="nav-item active"><span>●</span>Voice Console</div>
+            <div class="nav-item"><span>▤</span>Live Transcript</div>
+            <div class="nav-item"><span>◇</span>Agent Actions</div>
+            <div class="nav-item"><span>◎</span>Identity &amp; Auth</div>
+            <div class="nav-item"><span>⬡</span>Authority</div>
+            <div class="nav-item"><span>▣</span>Evidence</div>
+            <div class="nav-item"><span>◉</span>System Status</div>
+            <div class="nav-item"><span>⚙</span>Settings</div>
+
+            <div class="sidebar-quote">
+                “Conversation to capability.<br>
+                A more human tomorrow.”
+                <small>— UCII × AssemblyAI</small>
+            </div>
+        </aside>
+
+        <main class="workspace">
+            <div class="console-head">
+                <div>
+                    <h1>
+                        VOICE AUTHORITY CONSOLE
+                        <span class="live">● LIVE</span>
+                    </h1>
+                    <p>
+                        NATURAL CONVERSATION. REAL UNDERSTANDING.
+                        GOVERNED EXECUTION.
+                    </p>
+                </div>
+                <div class="secure">
+                    ▣ SESSION SECURE<br>
+                    <span class="brand-sub">UCII CONTROL PLANE</span>
+                </div>
+            </div>
+
+            <div class="voice-row">
+                <section class="panel orange">
+                    <div class="panel-head">
+                        <span>◉ YOUR VOICE (INPUT)</span>
+                        <span class="state" id="microphone-status">
+                            NOT STARTED
+                        </span>
+                    </div>
+
+                    <div class="wave orange-wave" aria-hidden="true">
+                        <i></i><i></i><i></i><i></i><i></i><i></i>
+                        <i></i><i></i><i></i><i></i><i></i><i></i>
+                        <i></i><i></i><i></i><i></i><i></i><i></i>
+                        <i></i><i></i><i></i><i></i><i></i><i></i>
+                        <i></i><i></i><i></i><i></i><i></i><i></i>
+                    </div>
+
+                    <div class="voice-detail">
+                        <small>Live user transcript</small>
+                        <span id="partial-turn">NONE</span>
+                    </div>
+
+                    <div class="control-row">
+                        <button id="start-microphone" type="button">
+                            Start Microphone
+                        </button>
+                        <button
+                            id="stop-microphone"
+                            type="button"
+                            disabled
+                        >
+                            Stop
+                        </button>
+                    </div>
+                </section>
+
+                <section class="panel blue">
+                    <div class="panel-head">
+                        <span>▲ ASSEMBLYAI (UNDERSTANDING)</span>
+                        <span class="state" id="assemblyai-status">
+                            NOT CONNECTED
+                        </span>
+                    </div>
+
+                    <div class="wave blue-wave" aria-hidden="true">
+                        <i></i><i></i><i></i><i></i><i></i><i></i>
+                        <i></i><i></i><i></i><i></i><i></i><i></i>
+                        <i></i><i></i><i></i><i></i><i></i><i></i>
+                        <i></i><i></i><i></i><i></i><i></i><i></i>
+                        <i></i><i></i><i></i><i></i><i></i><i></i>
+                    </div>
+
+                    <div class="voice-detail">
+                        <small>Finalized understanding</small>
+                        <span id="finalized-turn">NONE</span>
+                    </div>
+
+                    <div class="control-row">
+                        <button id="connect-assemblyai" type="button">
+                            Connect AssemblyAI
+                        </button>
+                        <button
+                            id="disconnect-assemblyai"
+                            type="button"
+                            disabled
+                        >
+                            Disconnect
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <div class="main-grid">
+                <div class="stack">
+                    <section class="panel">
+                        <div class="panel-head">
+                            <span>IDENTITY &amp; AUTHENTICATION</span>
+                            <span class="state">UCII</span>
+                        </div>
+                        <div class="evidence-list">
+                            <div class="evidence-row">
+                                <span>Identity</span>
+                                <strong class="neutral">AI_AGENT</strong>
+                            </div>
+                            <div class="evidence-row">
+                                <span>Credential</span>
+                                <strong class="neutral">ML-DSA-65</strong>
+                            </div>
+                            <div class="evidence-row">
+                                <span>Authentication</span>
+                                <strong class="neutral">NOT EVALUATED</strong>
+                            </div>
+                            <div class="evidence-row">
+                                <span>Signature</span>
+                                <strong class="neutral">NOT EVALUATED</strong>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="panel">
+                        <div class="panel-head">
+                            <span>ECONOMIC POLICY</span>
+                            <span class="state">SEPARATE GATE</span>
+                        </div>
+                        <div class="evidence-list">
+                            <div class="evidence-row">
+                                <span>Amount Requested</span>
+                                <strong class="neutral">NOT PARSED</strong>
+                            </div>
+                            <div class="evidence-row">
+                                <span>Policy Result</span>
+                                <strong class="neutral">NOT EVALUATED</strong>
+                            </div>
+                            <div class="evidence-row">
+                                <span>Entitlement</span>
+                                <strong class="neutral">NOT EVALUATED</strong>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="panel">
+                        <div class="panel-head">
+                            <span>VOICE TELEMETRY</span>
+                            <span class="state">LIVE EVIDENCE</span>
+                        </div>
+                        <div class="evidence-list">
+                            <div class="evidence-row">
+                                <span>Audio chunks</span>
+                                <strong id="audio-chunks-sent">0</strong>
+                            </div>
+                            <div class="evidence-row">
+                                <span>PCM16 bytes</span>
+                                <strong id="audio-bytes-sent">0</strong>
+                            </div>
+                            <div class="evidence-row">
+                                <span>Speech detection</span>
+                                <strong id="speech-detection">NONE</strong>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <section class="panel core">
+                    <div class="orbital">
+                        <div class="core-lockup">
+                            <div class="a">A</div>
+                            <div class="x">×</div>
+                            <div class="u">UCII</div>
+                        </div>
+                    </div>
+                    <p class="core-thesis">
+                        UNDERSTANDING ENABLES POSSIBILITY.<br>
+                        UCII GOVERNS REALITY.
+                    </p>
+                </section>
+
+                <div class="stack">
+                    <section class="panel">
+                        <div class="panel-head">
+                            <span>AUTHORITY EVALUATION</span>
+                            <span class="state">FRESH CHECK REQUIRED</span>
+                        </div>
+                        <div class="evidence-list">
+                            <div class="evidence-row">
+                                <span>Operation</span>
+                                <strong class="neutral">
+                                    compute.purchase
+                                </strong>
+                            </div>
+                            <div class="evidence-row">
+                                <span>Authority Status</span>
+                                <strong class="neutral">
+                                    NOT EVALUATED
+                                </strong>
+                            </div>
+                            <div class="evidence-row">
+                                <span>Validated request</span>
+                                <strong
+                                    id="validated-proposal"
+                                    class="neutral"
+                                >NONE</strong>
+                            </div>
+                        </div>
+                        <div class="callout">
+                            No execution authority is inferred from voice,
+                            identity, authentication, payment, or entitlement.
+                        </div>
+                    </section>
+
+                    <section class="panel">
+                        <div class="panel-head">
+                            <span>DECISION &amp; EXECUTION</span>
+                            <span class="state">UCII CONTROLLED</span>
+                        </div>
+                        <div class="evidence-list">
+                            <div class="evidence-row">
+                                <span>Decision</span>
+                                <strong class="neutral">NOT EVALUATED</strong>
+                            </div>
+                            <div class="evidence-row">
+                                <span>Execution</span>
+                                <strong
+                                    id="execution-status"
+                                    class="neutral"
+                                >DISABLED</strong>
+                            </div>
+                            <div class="evidence-row">
+                                <span>Server event</span>
+                                <strong
+                                    id="assemblyai-server-event"
+                                    class="neutral"
+                                >NONE</strong>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <div class="speechbar">
+                <div class="mic-orb">●</div>
+                <div>
+                    <strong>Speak naturally to the Voice Authority Agent</strong>
+                    <small>
+                        AssemblyAI understands the request.
+                        UCII determines whether anything may happen.
+                    </small>
+                </div>
+                <div class="good">● READY</div>
+            </div>
+
+            <div class="footer">
+                <span>PRIVACY BY DESIGN.</span>
+                <span>NO ALTERNATE TRUST ROOTS.</span>
+                <span>SELF-HOSTED.</span>
+                <span>A MORE HUMAN TOMORROW.</span>
+            </div>
+
+            <section
+                class="deferred"
+                aria-labelledby="human-ceremony-heading"
+            >
+                <h2 id="human-ceremony-heading">
+                    Protected HUMAN Possession Ceremony
+                </h2>
+                <div id="human-ceremony-order">NOT STARTED</div>
+                <div id="human-ceremony-status">NOT STARTED</div>
+                <div id="human-ceremony-selection">NONE</div>
+                <button id="start-human-ceremony" type="button">
+                    Start HUMAN Test
+                </button>
+                <button
+                    id="reset-human-ceremony"
+                    type="button"
+                    disabled
+                >
+                    Reset
+                </button>
+                <div id="human-ceremony-targets"></div>
+                <p id="human-ceremony-instruction">
+                    Deferred protected HUMAN bootstrap surface.
+                </p>
+            </section>
+        </main>
+
+        <aside class="rightbar">
+            <section class="panel">
+                <div class="panel-head">
+                    <span>SESSION INFO</span>
+                    <span class="state good">● ACTIVE</span>
+                </div>
+                <div class="evidence-list">
+                    <div class="evidence-row">
+                        <span>Identity</span>
+                        <strong>Voice Agent</strong>
+                    </div>
+                    <div class="evidence-row">
+                        <span>Type</span>
+                        <strong>AI_AGENT</strong>
+                    </div>
+                    <div class="evidence-row">
+                        <span>Control Plane</span>
+                        <strong class="good">UCII</strong>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <span>QUICK ACTIONS</span>
+                    <span class="state warn">AUTHORITY</span>
+                </div>
+                <div class="quick-actions">
+                    <button type="button" disabled>
+                        Inspect Authority · WIRING NEXT
+                    </button>
+                    <button type="button" disabled>
+                        Grant Authority · WIRING NEXT
+                    </button>
+                    <button type="button" disabled>
+                        Revoke Authority · WIRING NEXT
+                    </button>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <span>REAL-TIME STATUS</span>
+                    <span class="state">OBSERVED</span>
+                </div>
+                <div class="evidence-list">
+                    <div class="evidence-row">
+                        <span>AssemblyAI</span>
+                        <strong id="assemblyai-status-mirror">
+                            SEE CONSOLE
+                        </strong>
+                    </div>
+                    <div class="evidence-row">
+                        <span>UCII API</span>
+                        <strong class="neutral">NOT PROBED</strong>
+                    </div>
+                    <div class="evidence-row">
+                        <span>Signer Service</span>
+                        <strong class="neutral">NOT PROBED</strong>
+                    </div>
+                    <div class="evidence-row">
+                        <span>Database</span>
+                        <strong class="neutral">NOT PROBED</strong>
+                    </div>
+                </div>
+            </section>
+        </aside>
+    </div>
+    <script>
+        "use strict";
+
+        const microphoneStatus =
+            document.getElementById("microphone-status");
+        const startMicrophoneButton =
+            document.getElementById("start-microphone");
+        const stopMicrophoneButton =
+            document.getElementById("stop-microphone");
+        const assemblyaiStatus =
+            document.getElementById("assemblyai-status");
+        const speechDetection =
+            document.getElementById("speech-detection");
+        const assemblyaiServerEvent =
+            document.getElementById("assemblyai-server-event");
+        const partialTurn =
+            document.getElementById("partial-turn");
+        const finalizedTurn =
+            document.getElementById("finalized-turn");
+        const validatedProposal =
+            document.getElementById("validated-proposal");
+        const audioChunksSentStatus =
+            document.getElementById("audio-chunks-sent");
+        const audioBytesSentStatus =
+            document.getElementById("audio-bytes-sent");
+        const connectAssemblyAIButton =
+            document.getElementById("connect-assemblyai");
+        const disconnectAssemblyAIButton =
+            document.getElementById("disconnect-assemblyai");
+
+        const humanCeremonyOrder =
+            document.getElementById("human-ceremony-order");
+        const humanCeremonyStatus =
+            document.getElementById("human-ceremony-status");
+        const humanCeremonySelection =
+            document.getElementById("human-ceremony-selection");
+        const humanCeremonyTargets =
+            document.getElementById("human-ceremony-targets");
+        const humanCeremonyInstruction =
+            document.getElementById("human-ceremony-instruction");
+        const startHumanCeremonyButton =
+            document.getElementById("start-human-ceremony");
+        const resetHumanCeremonyButton =
+            document.getElementById("reset-human-ceremony");
+
+        const ASSEMBLYAI_WS_URL =
+            "wss://agents.assemblyai.com/v1/ws";
+        const ASSEMBLYAI_AUDIO_SAMPLE_RATE = 24000;
+        const MICROPHONE_WORKLET_URL = "/microphone-worklet.js";
+
+        let microphoneStream = null;
+        let microphoneAudioContext = null;
+        let microphoneSourceNode = null;
+        let microphoneWorkletNode = null;
+        let microphoneResampleBuffer = new Float32Array(0);
+        let microphoneResamplePosition = 0;
+        let assemblyaiSocket = null;
+        let assemblyaiSessionId = null;
+        let finalizedTurnItemId = null;
+        let audioChunksSent = 0;
+        let audioBytesSent = 0;
+
+        function setMicrophoneState(state) {
+            microphoneStatus.textContent = state;
+        }
+
+        const HUMAN_BOOTSTRAP_NAME = "Brad Phee";
+        const HUMAN_BOOTSTRAP_TARGET_ID =
+            "9df0ff8a-25d0-4340-be32-05e8263f1277";
+        const HUMAN_BOOTSTRAP_GOVERNANCE_OPERATIONS = [
+            "GRANT_DELEGATED_AUTHORITY",
+            "REVOKE_DELEGATED_AUTHORITY",
+        ];
+
+        let humanCeremonySelectedTargetIds = [];
+        let humanCeremonyNumbersByTargetId = new Map();
+        let humanCeremonyContext = null;
+
+        function resetHumanCeremony() {
+            humanCeremonySelectedTargetIds = [];
+            humanCeremonyNumbersByTargetId = new Map();
+            humanCeremonyContext = null;
+
+            humanCeremonyTargets.replaceChildren();
+            humanCeremonyOrder.textContent = "NOT STARTED";
+            humanCeremonyStatus.textContent = "NOT STARTED";
+            humanCeremonySelection.textContent = "NONE";
+            humanCeremonyInstruction.textContent =
+                "Start the test to request a protected UCII challenge.";
+
+            startHumanCeremonyButton.disabled = false;
+            resetHumanCeremonyButton.disabled = true;
+        }
+
+        function updateHumanCeremonySelection() {
+            if (humanCeremonySelectedTargetIds.length === 0) {
+                humanCeremonySelection.textContent = "NONE";
+                return;
+            }
+
+            humanCeremonySelection.textContent =
+                humanCeremonySelectedTargetIds
+                    .map(
+                        (targetId) =>
+                            humanCeremonyNumbersByTargetId.get(targetId),
+                    )
+                    .join(" → ");
+        }
+
+        function disableHumanCeremonyTargets() {
+            for (
+                const targetButton of
+                humanCeremonyTargets.querySelectorAll("button")
+            ) {
+                targetButton.disabled = true;
+            }
+        }
+
+        async function submitHumanCeremony() {
+            if (humanCeremonyContext === null) {
+                return;
+            }
+
+            disableHumanCeremonyTargets();
+            humanCeremonyStatus.textContent = "VERIFYING";
+            humanCeremonyInstruction.textContent =
+                "Submitting possession evidence to protected UCII.";
+
+            try {
+                const response = await fetch(
+                    "/human-bootstrap/complete",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            ceremony_id:
+                                humanCeremonyContext.ceremonyId,
+                            human_identity_id:
+                                humanCeremonyContext.humanIdentityId,
+                            target_identity_id:
+                                HUMAN_BOOTSTRAP_TARGET_ID,
+                            factor_id:
+                                humanCeremonyContext.factorId,
+                            challenge_id:
+                                humanCeremonyContext.challengeId,
+                            challenge_secret:
+                                humanCeremonyContext.challengeSecret,
+                            selected_target_ids:
+                                humanCeremonySelectedTargetIds,
+                            allowed_governance_operations:
+                                HUMAN_BOOTSTRAP_GOVERNANCE_OPERATIONS,
+                        }),
+                    },
+                );
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        typeof result.detail === "string"
+                            ? result.detail
+                            : "UCII verification denied.",
+                    );
+                }
+
+                if (
+                    result.status !== "established" ||
+                    typeof result.governance_relationship_id !== "string" ||
+                    result.governance_relationship_id.length === 0
+                ) {
+                    throw new Error(
+                        "UCII returned an invalid establishment result.",
+                    );
+                }
+
+                humanCeremonyContext = null;
+                humanCeremonyStatus.textContent = "UCII VERIFIED";
+                humanCeremonyInstruction.textContent =
+                    "HUMAN possession verified and bounded governance " +
+                    "established by UCII.";
+                resetHumanCeremonyButton.disabled = false;
+            } catch (error) {
+                humanCeremonyContext = null;
+                humanCeremonyStatus.textContent = "DENIED";
+                humanCeremonyInstruction.textContent =
+                    error instanceof Error
+                        ? error.message
+                        : "UCII verification failed.";
+                resetHumanCeremonyButton.disabled = false;
+            }
+        }
+
+        function selectHumanCeremonyTarget(button) {
+            if (humanCeremonyContext === null) {
+                return;
+            }
+
+            const targetId = button.dataset.targetId;
+
+            if (humanCeremonySelectedTargetIds.includes(targetId)) {
+                return;
+            }
+
+            humanCeremonySelectedTargetIds.push(targetId);
+            button.setAttribute("aria-pressed", "true");
+            button.disabled = true;
+            updateHumanCeremonySelection();
+
+            if (
+                humanCeremonySelectedTargetIds.length ===
+                humanCeremonyContext.targetCount
+            ) {
+                void submitHumanCeremony();
+            }
+        }
+
+        async function startHumanCeremony() {
+            resetHumanCeremony();
+
+            startHumanCeremonyButton.disabled = true;
+            humanCeremonyStatus.textContent = "REQUESTING";
+            humanCeremonyInstruction.textContent =
+                "Requesting protected UCII possession challenge.";
+
+            try {
+                const response = await fetch(
+                    "/human-bootstrap/begin",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            human_name: HUMAN_BOOTSTRAP_NAME,
+                            target_identity_id:
+                                HUMAN_BOOTSTRAP_TARGET_ID,
+                            allowed_governance_operations:
+                                HUMAN_BOOTSTRAP_GOVERNANCE_OPERATIONS,
+                        }),
+                    },
+                );
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        typeof result.detail === "string"
+                            ? result.detail
+                            : "UCII bootstrap request denied.",
+                    );
+                }
+
+                if (
+                    result.status !== "pending" ||
+                    typeof result.ceremony_id !== "string" ||
+                    result.ceremony_id.length === 0 ||
+                    typeof result.human_identity_id !== "string" ||
+                    typeof result.factor_id !== "string" ||
+                    typeof result.challenge !== "object" ||
+                    result.challenge === null ||
+                    typeof result.challenge.challenge_id !== "string" ||
+                    typeof result.challenge.challenge_secret !== "string" ||
+                    !Array.isArray(result.challenge.targets) ||
+                    result.challenge.targets.length === 0 ||
+                    typeof result.challenge.required_order !== "string"
+                ) {
+                    throw new Error(
+                        "UCII returned an invalid bootstrap challenge.",
+                    );
+                }
+
+                const targets = result.challenge.targets;
+
+                for (const target of targets) {
+                    if (
+                        typeof target.target_id !== "string" ||
+                        typeof target.number !== "number"
+                    ) {
+                        throw new Error(
+                            "UCII returned an invalid challenge target.",
+                        );
+                    }
+                }
+
+                if (result.challenge.required_order === "LOW_TO_HIGH") {
+                    humanCeremonyInstruction.textContent =
+                        "Select every circle from the lowest number " +
+                        "to the highest number.";
+                } else if (
+                    result.challenge.required_order === "HIGH_TO_LOW"
+                ) {
+                    humanCeremonyInstruction.textContent =
+                        "Select every circle from the highest number " +
+                        "to the lowest number.";
+                } else {
+                    throw new Error(
+                        "UCII returned an unsupported selection order.",
+                    );
+                }
+
+                humanCeremonyContext = {
+                    ceremonyId: result.ceremony_id,
+                    humanIdentityId: result.human_identity_id,
+                    factorId: result.factor_id,
+                    challengeId: result.challenge.challenge_id,
+                    challengeSecret:
+                        result.challenge.challenge_secret,
+                    targetCount: targets.length,
+                };
+
+                humanCeremonyNumbersByTargetId = new Map(
+                    targets.map(
+                        (target) => [
+                            target.target_id,
+                            target.number,
+                        ],
+                    ),
+                );
+
+                humanCeremonyOrder.textContent =
+                    result.challenge.required_order;
+                humanCeremonyStatus.textContent = "PENDING";
+
+                for (const target of targets) {
+                    const button = document.createElement("button");
+
+                    button.type = "button";
+                    button.className = "human-ceremony-target";
+                    button.textContent = String(target.number);
+                    button.dataset.targetId = target.target_id;
+                    button.setAttribute("aria-pressed", "false");
+                    button.setAttribute(
+                        "aria-label",
+                        `Select number ${target.number}`,
+                    );
+
+                    button.addEventListener(
+                        "click",
+                        () => selectHumanCeremonyTarget(button),
+                    );
+
+                    humanCeremonyTargets.appendChild(button);
+                }
+
+                resetHumanCeremonyButton.disabled = false;
+            } catch (error) {
+                humanCeremonyContext = null;
+                humanCeremonySelectedTargetIds = [];
+                humanCeremonyNumbersByTargetId = new Map();
+                humanCeremonyTargets.replaceChildren();
+                humanCeremonyOrder.textContent = "NOT ESTABLISHED";
+                humanCeremonySelection.textContent = "NONE";
+                humanCeremonyStatus.textContent = "DENIED";
+                humanCeremonyInstruction.textContent =
+                    error instanceof Error
+                        ? error.message
+                        : "UCII bootstrap request failed.";
+                startHumanCeremonyButton.disabled = false;
+                resetHumanCeremonyButton.disabled = false;
+            }
+        }
+
+        function setAssemblyAIState(state) {
+            assemblyaiStatus.textContent = state;
+        }
+
+        function resetAudioTransportEvidence() {
+            audioChunksSent = 0;
+            audioBytesSent = 0;
+            audioChunksSentStatus.textContent = "0";
+            audioBytesSentStatus.textContent = "0";
+        }
+
+        function recordAudioTransportEvidence(pcm16) {
+            audioChunksSent += 1;
+            audioBytesSent += pcm16.byteLength;
+            audioChunksSentStatus.textContent =
+                String(audioChunksSent);
+            audioBytesSentStatus.textContent =
+                String(audioBytesSent);
+        }
+
+        function resetAssemblyAIConnection() {
+            assemblyaiSocket = null;
+            assemblyaiSessionId = null;
+            finalizedTurnItemId = null;
+            connectAssemblyAIButton.disabled = false;
+            disconnectAssemblyAIButton.disabled = true;
+        }
+
+        function disconnectAssemblyAI() {
+            const socket = assemblyaiSocket;
+
+            assemblyaiSocket = null;
+            assemblyaiSessionId = null;
+            finalizedTurnItemId = null;
+
+            if (
+                socket !== null &&
+                (
+                    socket.readyState === WebSocket.CONNECTING ||
+                    socket.readyState === WebSocket.OPEN
+                )
+            ) {
+                socket.close(1000, "Client disconnected");
+            }
+
+            connectAssemblyAIButton.disabled = false;
+            disconnectAssemblyAIButton.disabled = true;
+            setAssemblyAIState("DISCONNECTED");
+        }
+
+        async function submitAssemblyAIToolProposal(message) {
+            if (
+                assemblyaiSessionId === null ||
+                finalizedTurnItemId === null ||
+                typeof message.name !== "string" ||
+                message.name.length === 0 ||
+                typeof message.arguments !== "object" ||
+                message.arguments === null ||
+                Array.isArray(message.arguments)
+            ) {
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    "/proposals/assemblyai-tool",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            session_id: assemblyaiSessionId,
+                            source_turn_reference: finalizedTurnItemId,
+                            tool_name: message.name,
+                            arguments: message.arguments,
+                        }),
+                    },
+                );
+
+                if (!response.ok) {
+                    return;
+                }
+
+                const proposal = await response.json();
+
+                if (
+                    proposal.operation !== "EXECUTE" ||
+                    proposal.consequence_class !== "CONSEQUENTIAL" ||
+                    proposal.session_id !== assemblyaiSessionId ||
+                    proposal.source_turn_reference !== finalizedTurnItemId ||
+                    proposal.requested_scope?.operation !==
+                        "compute.purchase" ||
+                    !Number.isInteger(
+                        proposal.requested_parameters?.quantity,
+                    ) ||
+                    proposal.requested_parameters.quantity < 1 ||
+                    proposal.requested_parameters?.unit !== "compute"
+                ) {
+                    return;
+                }
+
+                validatedProposal.textContent =
+                    `EXECUTE compute.purchase — ` +
+                    `${proposal.requested_parameters.quantity} compute — ` +
+                    `${proposal.consequence_class}`;
+            } catch {
+                return;
+            }
+        }
+
+        async function connectAssemblyAI() {
+            if (assemblyaiSocket !== null) {
+                return;
+            }
+
+            resetAudioTransportEvidence();
+
+            connectAssemblyAIButton.disabled = true;
+            disconnectAssemblyAIButton.disabled = true;
+            setAssemblyAIState("REQUESTING TOKEN");
+
+            let token;
+
+            try {
+                const response = await fetch(
+                    "/assemblyai/token",
+                    {
+                        method: "GET",
+                        cache: "no-store",
+                    },
+                );
+
+                if (!response.ok) {
+                    throw new Error("Temporary token request failed.");
+                }
+
+                const payload = await response.json();
+
+                if (
+                    typeof payload.token !== "string" ||
+                    payload.token.length === 0
+                ) {
+                    throw new Error("Temporary token response was invalid.");
+                }
+
+                token = payload.token;
+            } catch (error) {
+                resetAssemblyAIConnection();
+                setAssemblyAIState("TOKEN FAILED");
+                return;
+            }
+
+            setAssemblyAIState("CONNECTING");
+
+            const socket = new WebSocket(
+                `${ASSEMBLYAI_WS_URL}?token=${encodeURIComponent(token)}`,
+            );
+
+            assemblyaiSocket = socket;
+
+            socket.addEventListener("open", () => {
+                if (assemblyaiSocket !== socket) {
+                    socket.close(1000, "Superseded connection");
+                    return;
+                }
+
+                setAssemblyAIState("INITIALIZING");
+
+                socket.send(
+                    JSON.stringify({
+                        type: "session.update",
+                        session: {
+                            system_prompt:
+                                "You are the conversational voice interface " +
+                                "for the UCII Voice Authority Agent. " +
+                                "Understanding a request does not create " +
+                                "authority to execute it. " +
+                                "When the user explicitly requests a purchase " +
+                                "of compute units, you must call " +
+                                "propose_compute_purchase with the requested " +
+                                "quantity and unit compute. The tool only " +
+                                "proposes the request; it does not authorize " +
+                                "or execute it.",
+                            tools: [
+                                {
+                                    type: "function",
+                                    name: "propose_compute_purchase",
+                                    description:
+                                        "Propose a bounded compute purchase " +
+                                        "request. This tool does not authorize " +
+                                        "or execute the purchase.",
+                                    parameters: {
+                                        type: "object",
+                                        properties: {
+                                            quantity: {
+                                                type: "integer",
+                                                minimum: 1,
+                                                description:
+                                                    "Requested number of " +
+                                                    "compute units.",
+                                            },
+                                            unit: {
+                                                type: "string",
+                                                enum: ["compute"],
+                                                description:
+                                                    "Resource unit for this " +
+                                                    "bounded demo operation.",
+                                            },
+                                        },
+                                        required: [
+                                            "quantity",
+                                            "unit",
+                                        ],
+                                        additionalProperties: false,
+                                    },
+                                },
+                            ],
+                        },
+                    }),
+                );
+            });
+
+            socket.addEventListener("message", (event) => {
+                if (assemblyaiSocket !== socket) {
+                    return;
+                }
+
+                let message;
+
+                try {
+                    message = JSON.parse(event.data);
+                } catch (error) {
+                    return;
+                }
+
+                if (
+                    typeof message.type === "string" &&
+                    message.type.trim().length > 0
+                ) {
+                    assemblyaiServerEvent.textContent =
+                        message.type;
+                }
+
+                if (message.type === "session.ready") {
+                    if (
+                        typeof message.session_id !== "string" ||
+                        message.session_id.length === 0
+                    ) {
+                        setAssemblyAIState("SESSION INVALID");
+                        socket.close();
+                        return;
+                    }
+
+                    assemblyaiSessionId = message.session_id;
+                    finalizedTurnItemId = null;
+                    speechDetection.textContent = "NONE";
+                    partialTurn.textContent = "NONE";
+                    validatedProposal.textContent = "NONE";
+                    disconnectAssemblyAIButton.disabled = false;
+                    setAssemblyAIState("READY");
+                } else if (message.type === "input.speech.started") {
+                    speechDetection.textContent = "STARTED";
+                } else if (message.type === "input.speech.stopped") {
+                    speechDetection.textContent = "STOPPED";
+                } else if (message.type === "transcript.user.delta") {
+                    if (
+                        typeof message.delta === "string" &&
+                        message.delta.trim().length > 0
+                    ) {
+                        partialTurn.textContent = message.delta;
+                    }
+                } else if (message.type === "transcript.user") {
+                    if (
+                        typeof message.text !== "string" ||
+                        message.text.trim().length === 0 ||
+                        typeof message.item_id !== "string" ||
+                        message.item_id.trim().length === 0
+                    ) {
+                        return;
+                    }
+
+                    finalizedTurnItemId = message.item_id;
+                    partialTurn.textContent = "NONE";
+                    finalizedTurn.textContent = message.text;
+                } else if (message.type === "tool.call") {
+                    void submitAssemblyAIToolProposal(message);
+                } else if (message.type === "session.error") {
+                    setAssemblyAIState("SESSION ERROR");
+                }
+            });
+
+            socket.addEventListener("error", () => {
+                if (assemblyaiSocket === socket) {
+                    setAssemblyAIState("CONNECTION FAILED");
+                }
+            });
+
+            socket.addEventListener("close", () => {
+                if (assemblyaiSocket !== socket) {
+                    return;
+                }
+
+                const wasReady = assemblyaiSessionId !== null;
+
+                resetAssemblyAIConnection();
+
+                if (wasReady) {
+                    setAssemblyAIState("DISCONNECTED");
+                } else if (
+                    assemblyaiStatus.textContent !== "SESSION INVALID" &&
+                    assemblyaiStatus.textContent !== "SESSION ERROR" &&
+                    assemblyaiStatus.textContent !== "CONNECTION FAILED"
+                ) {
+                    setAssemblyAIState("CONNECTION CLOSED");
+                }
+            });
+        }
+
+        function float32ToPcm16(samples) {
+            const pcm16 = new Int16Array(samples.length);
+
+            for (let index = 0; index < samples.length; index += 1) {
+                const sample = Math.max(-1, Math.min(1, samples[index]));
+
+                pcm16[index] =
+                    sample < 0
+                        ? Math.round(sample * 32768)
+                        : Math.round(sample * 32767);
+            }
+
+            return pcm16;
+        }
+
+        function resampleToAssemblyAIRate(samples, sourceSampleRate) {
+            if (
+                !(samples instanceof Float32Array) ||
+                samples.length === 0 ||
+                !Number.isFinite(sourceSampleRate) ||
+                sourceSampleRate <= 0
+            ) {
+                return new Float32Array(0);
+            }
+
+            const combined =
+                new Float32Array(
+                    microphoneResampleBuffer.length + samples.length,
+                );
+
+            combined.set(microphoneResampleBuffer, 0);
+            combined.set(samples, microphoneResampleBuffer.length);
+
+            const sourceStep =
+                sourceSampleRate / ASSEMBLYAI_AUDIO_SAMPLE_RATE;
+            const output = [];
+
+            while (microphoneResamplePosition + 1 < combined.length) {
+                const lowerIndex = Math.floor(microphoneResamplePosition);
+                const upperIndex = lowerIndex + 1;
+                const fraction =
+                    microphoneResamplePosition - lowerIndex;
+
+                output.push(
+                    combined[lowerIndex] +
+                    (
+                        combined[upperIndex] -
+                        combined[lowerIndex]
+                    ) * fraction,
+                );
+
+                microphoneResamplePosition += sourceStep;
+            }
+
+            const retainedStart =
+                Math.max(
+                    0,
+                    Math.floor(microphoneResamplePosition),
+                );
+
+            microphoneResampleBuffer =
+                combined.slice(retainedStart);
+            microphoneResamplePosition -= retainedStart;
+
+            return Float32Array.from(output);
+        }
+
+        function encodePcm16Base64(pcm16) {
+            const bytes =
+                new Uint8Array(
+                    pcm16.buffer,
+                    pcm16.byteOffset,
+                    pcm16.byteLength,
+                );
+
+            let binary = "";
+
+            for (const byte of bytes) {
+                binary += String.fromCharCode(byte);
+            }
+
+            return btoa(binary);
+        }
+
+        function sendAssemblyAIAudio(pcm16) {
+            const socket = assemblyaiSocket;
+
+            if (
+                socket === null ||
+                socket.readyState !== WebSocket.OPEN ||
+                assemblyaiSessionId === null
+            ) {
+                return;
+            }
+
+            socket.send(
+                JSON.stringify({
+                    type: "input.audio",
+                    audio: encodePcm16Base64(pcm16),
+                }),
+            );
+
+            recordAudioTransportEvidence(pcm16);
+        }
+
+        function captureMicrophonePcm16(samples, sourceSampleRate) {
+            const resampled =
+                resampleToAssemblyAIRate(samples, sourceSampleRate);
+
+            if (resampled.length === 0) {
+                return;
+            }
+
+            const pcm16 = float32ToPcm16(resampled);
+
+            sendAssemblyAIAudio(pcm16);
+        }
+
+        async function stopMicrophoneAudioPipeline() {
+            if (microphoneWorkletNode !== null) {
+                microphoneWorkletNode.port.onmessage = null;
+                microphoneWorkletNode.disconnect();
+                microphoneWorkletNode = null;
+            }
+
+            if (microphoneSourceNode !== null) {
+                microphoneSourceNode.disconnect();
+                microphoneSourceNode = null;
+            }
+
+            if (microphoneAudioContext !== null) {
+                const context = microphoneAudioContext;
+                microphoneAudioContext = null;
+
+                if (context.state !== "closed") {
+                    await context.close();
+                }
+            }
+
+            microphoneResampleBuffer = new Float32Array(0);
+            microphoneResamplePosition = 0;
+        }
+
+        async function startMicrophoneAudioPipeline(stream) {
+            const context = new AudioContext();
+
+            try {
+                await context.audioWorklet.addModule(
+                    MICROPHONE_WORKLET_URL,
+                );
+
+                const source =
+                    context.createMediaStreamSource(stream);
+                const worklet =
+                    new AudioWorkletNode(
+                        context,
+                        "microphone-capture-processor",
+                    );
+
+                worklet.port.onmessage = (event) => {
+                    if (!(event.data instanceof Float32Array)) {
+                        return;
+                    }
+
+                    captureMicrophonePcm16(
+                        event.data,
+                        context.sampleRate,
+                    );
+                };
+
+                source.connect(worklet);
+
+                microphoneAudioContext = context;
+                microphoneSourceNode = source;
+                microphoneWorkletNode = worklet;
+                microphoneResampleBuffer = new Float32Array(0);
+                microphoneResamplePosition = 0;
+            } catch (error) {
+                if (context.state !== "closed") {
+                    await context.close();
+                }
+
+                throw error;
+            }
+        }
+
+        async function stopMicrophone() {
+            await stopMicrophoneAudioPipeline();
+
+            if (microphoneStream !== null) {
+                for (const track of microphoneStream.getTracks()) {
+                    track.stop();
+                }
+
+                microphoneStream = null;
+            }
+
+            startMicrophoneButton.disabled = false;
+            stopMicrophoneButton.disabled = true;
+            setMicrophoneState("STOPPED");
+        }
+
+        async function startMicrophone() {
+            if (
+                !navigator.mediaDevices ||
+                !navigator.mediaDevices.getUserMedia
+            ) {
+                setMicrophoneState("UNAVAILABLE");
+                return;
+            }
+
+            startMicrophoneButton.disabled = true;
+            stopMicrophoneButton.disabled = true;
+            setMicrophoneState("REQUESTING");
+
+            try {
+                const stream =
+                    await navigator.mediaDevices.getUserMedia({
+                        audio: true,
+                        video: false,
+                    });
+
+                microphoneStream = stream;
+
+                await startMicrophoneAudioPipeline(stream);
+
+                for (const track of stream.getAudioTracks()) {
+                    track.addEventListener(
+                        "ended",
+                        () => {
+                            if (microphoneStream === stream) {
+                                microphoneStream = null;
+                                void stopMicrophoneAudioPipeline();
+                                startMicrophoneButton.disabled = false;
+                                stopMicrophoneButton.disabled = true;
+                                setMicrophoneState("STOPPED");
+                            }
+                        },
+                        { once: true },
+                    );
+                }
+
+                stopMicrophoneButton.disabled = false;
+                setMicrophoneState("LISTENING");
+            } catch (error) {
+                if (microphoneStream !== null) {
+                    for (const track of microphoneStream.getTracks()) {
+                        track.stop();
+                    }
+
+                    microphoneStream = null;
+                }
+
+                await stopMicrophoneAudioPipeline();
+
+                startMicrophoneButton.disabled = false;
+                stopMicrophoneButton.disabled = true;
+
+                if (
+                    error instanceof DOMException &&
+                    (
+                        error.name === "NotAllowedError" ||
+                        error.name === "SecurityError"
+                    )
+                ) {
+                    setMicrophoneState("PERMISSION DENIED");
+                } else if (
+                    error instanceof DOMException &&
+                    error.name === "NotFoundError"
+                ) {
+                    setMicrophoneState("NO DEVICE");
+                } else {
+                    setMicrophoneState("FAILED");
+                }
+            }
+        }
+
+        startMicrophoneButton.addEventListener(
+            "click",
+            startMicrophone,
+        );
+
+        stopMicrophoneButton.addEventListener(
+            "click",
+            stopMicrophone,
+        );
+
+        connectAssemblyAIButton.addEventListener(
+            "click",
+            connectAssemblyAI,
+        );
+
+        disconnectAssemblyAIButton.addEventListener(
+            "click",
+            disconnectAssemblyAI,
+        );
+
+        startHumanCeremonyButton.addEventListener(
+            "click",
+            startHumanCeremony,
+        );
+
+        resetHumanCeremonyButton.addEventListener(
+            "click",
+            resetHumanCeremony,
+        );
+    </script>
+</body>
+</html>
