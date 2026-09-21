@@ -7,6 +7,43 @@
         content="width=device-width, initial-scale=1"
     >
     <title>UCII Voice Authority Agent</title>
+    <style>
+        .human-ceremony {
+            margin-top: 2rem;
+            padding: 1rem;
+            border: 1px solid currentColor;
+            max-width: 44rem;
+        }
+
+        .human-ceremony-targets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 1rem 0;
+        }
+
+        .human-ceremony-target {
+            width: 4rem;
+            height: 4rem;
+            border: 2px solid currentColor;
+            border-radius: 50%;
+            background: transparent;
+            font: inherit;
+            font-size: 1.15rem;
+            cursor: pointer;
+        }
+
+        .human-ceremony-target[aria-pressed="true"] {
+            font-weight: bold;
+            outline: 3px solid currentColor;
+            outline-offset: 2px;
+        }
+
+        .human-ceremony-target:disabled {
+            cursor: default;
+            opacity: 0.65;
+        }
+    </style>
 </head>
 <body>
     <main>
@@ -79,6 +116,56 @@
         <p>
             Understanding a request does not create authority to execute it.
         </p>
+
+        <section
+            class="human-ceremony"
+            aria-labelledby="human-ceremony-heading"
+        >
+            <h2 id="human-ceremony-heading">
+                HUMAN Local Possession Ceremony
+            </h2>
+
+            <p>
+                This local interaction demonstrates the HUMAN possession
+                ceremony presentation. It does not create authority.
+            </p>
+
+            <dl>
+                <dt>Ceremony source</dt>
+                <dd>LOCAL DEMONSTRATION — NOT UCII VERIFIED</dd>
+
+                <dt>Required selection</dt>
+                <dd id="human-ceremony-order">NOT STARTED</dd>
+
+                <dt>Ceremony state</dt>
+                <dd id="human-ceremony-status">NOT STARTED</dd>
+
+                <dt>Selected sequence</dt>
+                <dd id="human-ceremony-selection">NONE</dd>
+            </dl>
+
+            <button id="start-human-ceremony" type="button">
+                Start HUMAN Test
+            </button>
+
+            <button
+                id="reset-human-ceremony"
+                type="button"
+                disabled
+            >
+                Reset
+            </button>
+
+            <div
+                id="human-ceremony-targets"
+                class="human-ceremony-targets"
+                aria-label="HUMAN possession targets"
+            ></div>
+
+            <p id="human-ceremony-instruction">
+                Start the test to generate a local presentation challenge.
+            </p>
+        </section>
     </main>
 
     <script>
@@ -111,6 +198,21 @@
         const disconnectAssemblyAIButton =
             document.getElementById("disconnect-assemblyai");
 
+        const humanCeremonyOrder =
+            document.getElementById("human-ceremony-order");
+        const humanCeremonyStatus =
+            document.getElementById("human-ceremony-status");
+        const humanCeremonySelection =
+            document.getElementById("human-ceremony-selection");
+        const humanCeremonyTargets =
+            document.getElementById("human-ceremony-targets");
+        const humanCeremonyInstruction =
+            document.getElementById("human-ceremony-instruction");
+        const startHumanCeremonyButton =
+            document.getElementById("start-human-ceremony");
+        const resetHumanCeremonyButton =
+            document.getElementById("reset-human-ceremony");
+
         const ASSEMBLYAI_WS_URL =
             "wss://agents.assemblyai.com/v1/ws";
         const ASSEMBLYAI_AUDIO_SAMPLE_RATE = 24000;
@@ -130,6 +232,192 @@
 
         function setMicrophoneState(state) {
             microphoneStatus.textContent = state;
+        }
+
+        let humanCeremonyExpectedTargetIds = [];
+        let humanCeremonySelectedTargetIds = [];
+        let humanCeremonyNumbersByTargetId = new Map();
+
+        function resetHumanCeremony() {
+            humanCeremonyExpectedTargetIds = [];
+            humanCeremonySelectedTargetIds = [];
+            humanCeremonyNumbersByTargetId = new Map();
+
+            humanCeremonyTargets.replaceChildren();
+            humanCeremonyOrder.textContent = "NOT STARTED";
+            humanCeremonyStatus.textContent = "NOT STARTED";
+            humanCeremonySelection.textContent = "NONE";
+            humanCeremonyInstruction.textContent =
+                "Start the test to generate a local presentation challenge.";
+
+            startHumanCeremonyButton.disabled = false;
+            resetHumanCeremonyButton.disabled = true;
+        }
+
+        function randomUniqueCeremonyNumbers(count) {
+            const numbers = new Set();
+
+            while (numbers.size < count) {
+                numbers.add(
+                    10 + Math.floor(Math.random() * 90),
+                );
+            }
+
+            return Array.from(numbers);
+        }
+
+        function updateHumanCeremonySelection() {
+            if (humanCeremonySelectedTargetIds.length === 0) {
+                humanCeremonySelection.textContent = "NONE";
+                return;
+            }
+
+            humanCeremonySelection.textContent =
+                humanCeremonySelectedTargetIds
+                    .map(
+                        (targetId) =>
+                            humanCeremonyNumbersByTargetId.get(targetId),
+                    )
+                    .join(" → ");
+        }
+
+        function selectHumanCeremonyTarget(button) {
+            if (
+                humanCeremonySelectedTargetIds.length >=
+                humanCeremonyExpectedTargetIds.length
+            ) {
+                return;
+            }
+
+            const targetId = button.dataset.targetId;
+
+            if (humanCeremonySelectedTargetIds.includes(targetId)) {
+                return;
+            }
+
+            humanCeremonySelectedTargetIds.push(targetId);
+            button.setAttribute("aria-pressed", "true");
+            button.disabled = true;
+            updateHumanCeremonySelection();
+
+            if (
+                humanCeremonySelectedTargetIds.length !==
+                humanCeremonyExpectedTargetIds.length
+            ) {
+                return;
+            }
+
+            const exactSequence =
+                humanCeremonySelectedTargetIds.every(
+                    (selectedTargetId, index) =>
+                        selectedTargetId ===
+                        humanCeremonyExpectedTargetIds[index],
+                );
+
+            for (
+                const targetButton of
+                humanCeremonyTargets.querySelectorAll("button")
+            ) {
+                targetButton.disabled = true;
+            }
+
+            if (exactSequence) {
+                humanCeremonyStatus.textContent =
+                    "SEQUENCE COMPLETE — AWAITING UCII VERIFICATION";
+                humanCeremonyInstruction.textContent =
+                    "The browser cannot verify HUMAN possession. " +
+                    "UCII verification is required.";
+            } else {
+                humanCeremonyStatus.textContent = "FAILED";
+                humanCeremonyInstruction.textContent =
+                    "The selected sequence was incorrect. " +
+                    "No authority was created.";
+            }
+        }
+
+        function startHumanCeremony() {
+            resetHumanCeremony();
+
+            const numbers = randomUniqueCeremonyNumbers(6);
+            const lowToHigh = Math.random() < 0.5;
+            const orderedNumbers = [...numbers].sort(
+                (left, right) =>
+                    lowToHigh ? left - right : right - left,
+            );
+
+            const targets = numbers.map(
+                (number) => ({
+                    targetId: crypto.randomUUID(),
+                    number,
+                }),
+            );
+
+            humanCeremonyNumbersByTargetId = new Map(
+                targets.map(
+                    (target) => [target.targetId, target.number],
+                ),
+            );
+
+            humanCeremonyExpectedTargetIds =
+                orderedNumbers.map(
+                    (number) =>
+                        targets.find(
+                            (target) => target.number === number,
+                        ).targetId,
+                );
+
+            humanCeremonyOrder.textContent =
+                lowToHigh ? "LOW → HIGH" : "HIGH → LOW";
+            humanCeremonyStatus.textContent = "PENDING";
+            humanCeremonyInstruction.textContent =
+                lowToHigh
+                    ? "Select every circle from the lowest number " +
+                        "to the highest number."
+                    : "Select every circle from the highest number " +
+                        "to the lowest number.";
+
+            const shuffledTargets = [...targets];
+
+            for (
+                let index = shuffledTargets.length - 1;
+                index > 0;
+                index -= 1
+            ) {
+                const swapIndex =
+                    Math.floor(Math.random() * (index + 1));
+
+                [
+                    shuffledTargets[index],
+                    shuffledTargets[swapIndex],
+                ] = [
+                    shuffledTargets[swapIndex],
+                    shuffledTargets[index],
+                ];
+            }
+
+            for (const target of shuffledTargets) {
+                const button = document.createElement("button");
+
+                button.type = "button";
+                button.className = "human-ceremony-target";
+                button.textContent = String(target.number);
+                button.dataset.targetId = target.targetId;
+                button.setAttribute("aria-pressed", "false");
+                button.setAttribute(
+                    "aria-label",
+                    `Select number ${target.number}`,
+                );
+
+                button.addEventListener(
+                    "click",
+                    () => selectHumanCeremonyTarget(button),
+                );
+
+                humanCeremonyTargets.appendChild(button);
+            }
+
+            startHumanCeremonyButton.disabled = true;
+            resetHumanCeremonyButton.disabled = false;
         }
 
         function setAssemblyAIState(state) {
@@ -746,6 +1034,16 @@
         disconnectAssemblyAIButton.addEventListener(
             "click",
             disconnectAssemblyAI,
+        );
+
+        startHumanCeremonyButton.addEventListener(
+            "click",
+            startHumanCeremony,
+        );
+
+        resetHumanCeremonyButton.addEventListener(
+            "click",
+            resetHumanCeremony,
         );
     </script>
 </body>
