@@ -126,13 +126,13 @@
             </h2>
 
             <p>
-                This local interaction demonstrates the HUMAN possession
-                ceremony presentation. It does not create authority.
+                This interaction presents a possession challenge issued
+                and verified by protected UCII bootstrap.
             </p>
 
             <dl>
                 <dt>Ceremony source</dt>
-                <dd>LOCAL DEMONSTRATION — NOT UCII VERIFIED</dd>
+                <dd>PROTECTED UCII BOOTSTRAP</dd>
 
                 <dt>Required selection</dt>
                 <dd id="human-ceremony-order">NOT STARTED</dd>
@@ -163,7 +163,7 @@
             ></div>
 
             <p id="human-ceremony-instruction">
-                Start the test to generate a local presentation challenge.
+                Start the test to request a protected UCII challenge.
             </p>
         </section>
     </main>
@@ -234,36 +234,32 @@
             microphoneStatus.textContent = state;
         }
 
-        let humanCeremonyExpectedTargetIds = [];
+        const HUMAN_BOOTSTRAP_NAME = "Brad Phee";
+        const HUMAN_BOOTSTRAP_TARGET_ID =
+            "9df0ff8a-25d0-4340-be32-05e8263f1277";
+        const HUMAN_BOOTSTRAP_GOVERNANCE_OPERATIONS = [
+            "GRANT_DELEGATED_AUTHORITY",
+            "REVOKE_DELEGATED_AUTHORITY",
+        ];
+
         let humanCeremonySelectedTargetIds = [];
         let humanCeremonyNumbersByTargetId = new Map();
+        let humanCeremonyContext = null;
 
         function resetHumanCeremony() {
-            humanCeremonyExpectedTargetIds = [];
             humanCeremonySelectedTargetIds = [];
             humanCeremonyNumbersByTargetId = new Map();
+            humanCeremonyContext = null;
 
             humanCeremonyTargets.replaceChildren();
             humanCeremonyOrder.textContent = "NOT STARTED";
             humanCeremonyStatus.textContent = "NOT STARTED";
             humanCeremonySelection.textContent = "NONE";
             humanCeremonyInstruction.textContent =
-                "Start the test to generate a local presentation challenge.";
+                "Start the test to request a protected UCII challenge.";
 
             startHumanCeremonyButton.disabled = false;
             resetHumanCeremonyButton.disabled = true;
-        }
-
-        function randomUniqueCeremonyNumbers(count) {
-            const numbers = new Set();
-
-            while (numbers.size < count) {
-                numbers.add(
-                    10 + Math.floor(Math.random() * 90),
-                );
-            }
-
-            return Array.from(numbers);
         }
 
         function updateHumanCeremonySelection() {
@@ -281,11 +277,93 @@
                     .join(" → ");
         }
 
-        function selectHumanCeremonyTarget(button) {
-            if (
-                humanCeremonySelectedTargetIds.length >=
-                humanCeremonyExpectedTargetIds.length
+        function disableHumanCeremonyTargets() {
+            for (
+                const targetButton of
+                humanCeremonyTargets.querySelectorAll("button")
             ) {
+                targetButton.disabled = true;
+            }
+        }
+
+        async function submitHumanCeremony() {
+            if (humanCeremonyContext === null) {
+                return;
+            }
+
+            disableHumanCeremonyTargets();
+            humanCeremonyStatus.textContent = "VERIFYING";
+            humanCeremonyInstruction.textContent =
+                "Submitting possession evidence to protected UCII.";
+
+            try {
+                const response = await fetch(
+                    "/human-bootstrap/complete",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            ceremony_id:
+                                humanCeremonyContext.ceremonyId,
+                            human_identity_id:
+                                humanCeremonyContext.humanIdentityId,
+                            target_identity_id:
+                                HUMAN_BOOTSTRAP_TARGET_ID,
+                            factor_id:
+                                humanCeremonyContext.factorId,
+                            challenge_id:
+                                humanCeremonyContext.challengeId,
+                            challenge_secret:
+                                humanCeremonyContext.challengeSecret,
+                            selected_target_ids:
+                                humanCeremonySelectedTargetIds,
+                            allowed_governance_operations:
+                                HUMAN_BOOTSTRAP_GOVERNANCE_OPERATIONS,
+                        }),
+                    },
+                );
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        typeof result.detail === "string"
+                            ? result.detail
+                            : "UCII verification denied.",
+                    );
+                }
+
+                if (
+                    result.status !== "established" ||
+                    typeof result.governance_relationship_id !== "string" ||
+                    result.governance_relationship_id.length === 0
+                ) {
+                    throw new Error(
+                        "UCII returned an invalid establishment result.",
+                    );
+                }
+
+                humanCeremonyContext = null;
+                humanCeremonyStatus.textContent = "UCII VERIFIED";
+                humanCeremonyInstruction.textContent =
+                    "HUMAN possession verified and bounded governance " +
+                    "established by UCII.";
+                resetHumanCeremonyButton.disabled = false;
+            } catch (error) {
+                humanCeremonyContext = null;
+                humanCeremonyStatus.textContent = "DENIED";
+                humanCeremonyInstruction.textContent =
+                    error instanceof Error
+                        ? error.message
+                        : "UCII verification failed.";
+                resetHumanCeremonyButton.disabled = false;
+            }
+        }
+
+        function selectHumanCeremonyTarget(button) {
+            if (humanCeremonyContext === null) {
                 return;
             }
 
@@ -301,123 +379,159 @@
             updateHumanCeremonySelection();
 
             if (
-                humanCeremonySelectedTargetIds.length !==
-                humanCeremonyExpectedTargetIds.length
+                humanCeremonySelectedTargetIds.length ===
+                humanCeremonyContext.targetCount
             ) {
-                return;
-            }
-
-            const exactSequence =
-                humanCeremonySelectedTargetIds.every(
-                    (selectedTargetId, index) =>
-                        selectedTargetId ===
-                        humanCeremonyExpectedTargetIds[index],
-                );
-
-            for (
-                const targetButton of
-                humanCeremonyTargets.querySelectorAll("button")
-            ) {
-                targetButton.disabled = true;
-            }
-
-            if (exactSequence) {
-                humanCeremonyStatus.textContent =
-                    "SEQUENCE COMPLETE — AWAITING UCII VERIFICATION";
-                humanCeremonyInstruction.textContent =
-                    "The browser cannot verify HUMAN possession. " +
-                    "UCII verification is required.";
-            } else {
-                humanCeremonyStatus.textContent = "FAILED";
-                humanCeremonyInstruction.textContent =
-                    "The selected sequence was incorrect. " +
-                    "No authority was created.";
+                void submitHumanCeremony();
             }
         }
 
-        function startHumanCeremony() {
+        async function startHumanCeremony() {
             resetHumanCeremony();
 
-            const numbers = randomUniqueCeremonyNumbers(6);
-            const lowToHigh = Math.random() < 0.5;
-            const orderedNumbers = [...numbers].sort(
-                (left, right) =>
-                    lowToHigh ? left - right : right - left,
-            );
-
-            const targets = numbers.map(
-                (number) => ({
-                    targetId: crypto.randomUUID(),
-                    number,
-                }),
-            );
-
-            humanCeremonyNumbersByTargetId = new Map(
-                targets.map(
-                    (target) => [target.targetId, target.number],
-                ),
-            );
-
-            humanCeremonyExpectedTargetIds =
-                orderedNumbers.map(
-                    (number) =>
-                        targets.find(
-                            (target) => target.number === number,
-                        ).targetId,
-                );
-
-            humanCeremonyOrder.textContent =
-                lowToHigh ? "LOW → HIGH" : "HIGH → LOW";
-            humanCeremonyStatus.textContent = "PENDING";
-            humanCeremonyInstruction.textContent =
-                lowToHigh
-                    ? "Select every circle from the lowest number " +
-                        "to the highest number."
-                    : "Select every circle from the highest number " +
-                        "to the lowest number.";
-
-            const shuffledTargets = [...targets];
-
-            for (
-                let index = shuffledTargets.length - 1;
-                index > 0;
-                index -= 1
-            ) {
-                const swapIndex =
-                    Math.floor(Math.random() * (index + 1));
-
-                [
-                    shuffledTargets[index],
-                    shuffledTargets[swapIndex],
-                ] = [
-                    shuffledTargets[swapIndex],
-                    shuffledTargets[index],
-                ];
-            }
-
-            for (const target of shuffledTargets) {
-                const button = document.createElement("button");
-
-                button.type = "button";
-                button.className = "human-ceremony-target";
-                button.textContent = String(target.number);
-                button.dataset.targetId = target.targetId;
-                button.setAttribute("aria-pressed", "false");
-                button.setAttribute(
-                    "aria-label",
-                    `Select number ${target.number}`,
-                );
-
-                button.addEventListener(
-                    "click",
-                    () => selectHumanCeremonyTarget(button),
-                );
-
-                humanCeremonyTargets.appendChild(button);
-            }
-
             startHumanCeremonyButton.disabled = true;
-            resetHumanCeremonyButton.disabled = false;
+            humanCeremonyStatus.textContent = "REQUESTING";
+            humanCeremonyInstruction.textContent =
+                "Requesting protected UCII possession challenge.";
+
+            const ceremonyId = crypto.randomUUID();
+
+            try {
+                const response = await fetch(
+                    "/human-bootstrap/begin",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            ceremony_id: ceremonyId,
+                            human_name: HUMAN_BOOTSTRAP_NAME,
+                            target_identity_id:
+                                HUMAN_BOOTSTRAP_TARGET_ID,
+                            allowed_governance_operations:
+                                HUMAN_BOOTSTRAP_GOVERNANCE_OPERATIONS,
+                        }),
+                    },
+                );
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        typeof result.detail === "string"
+                            ? result.detail
+                            : "UCII bootstrap request denied.",
+                    );
+                }
+
+                if (
+                    result.status !== "pending" ||
+                    result.ceremony_id !== ceremonyId ||
+                    typeof result.human_identity_id !== "string" ||
+                    typeof result.factor_id !== "string" ||
+                    typeof result.challenge !== "object" ||
+                    result.challenge === null ||
+                    typeof result.challenge.challenge_id !== "string" ||
+                    typeof result.challenge.challenge_secret !== "string" ||
+                    !Array.isArray(result.challenge.targets) ||
+                    result.challenge.targets.length === 0 ||
+                    typeof result.challenge.required_order !== "string"
+                ) {
+                    throw new Error(
+                        "UCII returned an invalid bootstrap challenge.",
+                    );
+                }
+
+                const targets = result.challenge.targets;
+
+                for (const target of targets) {
+                    if (
+                        typeof target.target_id !== "string" ||
+                        typeof target.number !== "number"
+                    ) {
+                        throw new Error(
+                            "UCII returned an invalid challenge target.",
+                        );
+                    }
+                }
+
+                if (result.challenge.required_order === "LOW_TO_HIGH") {
+                    humanCeremonyInstruction.textContent =
+                        "Select every circle from the lowest number " +
+                        "to the highest number.";
+                } else if (
+                    result.challenge.required_order === "HIGH_TO_LOW"
+                ) {
+                    humanCeremonyInstruction.textContent =
+                        "Select every circle from the highest number " +
+                        "to the lowest number.";
+                } else {
+                    throw new Error(
+                        "UCII returned an unsupported selection order.",
+                    );
+                }
+
+                humanCeremonyContext = {
+                    ceremonyId,
+                    humanIdentityId: result.human_identity_id,
+                    factorId: result.factor_id,
+                    challengeId: result.challenge.challenge_id,
+                    challengeSecret:
+                        result.challenge.challenge_secret,
+                    targetCount: targets.length,
+                };
+
+                humanCeremonyNumbersByTargetId = new Map(
+                    targets.map(
+                        (target) => [
+                            target.target_id,
+                            target.number,
+                        ],
+                    ),
+                );
+
+                humanCeremonyOrder.textContent =
+                    result.challenge.required_order;
+                humanCeremonyStatus.textContent = "PENDING";
+
+                for (const target of targets) {
+                    const button = document.createElement("button");
+
+                    button.type = "button";
+                    button.className = "human-ceremony-target";
+                    button.textContent = String(target.number);
+                    button.dataset.targetId = target.target_id;
+                    button.setAttribute("aria-pressed", "false");
+                    button.setAttribute(
+                        "aria-label",
+                        `Select number ${target.number}`,
+                    );
+
+                    button.addEventListener(
+                        "click",
+                        () => selectHumanCeremonyTarget(button),
+                    );
+
+                    humanCeremonyTargets.appendChild(button);
+                }
+
+                resetHumanCeremonyButton.disabled = false;
+            } catch (error) {
+                humanCeremonyContext = null;
+                humanCeremonySelectedTargetIds = [];
+                humanCeremonyNumbersByTargetId = new Map();
+                humanCeremonyTargets.replaceChildren();
+                humanCeremonyOrder.textContent = "NOT ESTABLISHED";
+                humanCeremonySelection.textContent = "NONE";
+                humanCeremonyStatus.textContent = "DENIED";
+                humanCeremonyInstruction.textContent =
+                    error instanceof Error
+                        ? error.message
+                        : "UCII bootstrap request failed.";
+                startHumanCeremonyButton.disabled = false;
+                resetHumanCeremonyButton.disabled = false;
+            }
         }
 
         function setAssemblyAIState(state) {
