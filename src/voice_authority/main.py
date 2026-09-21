@@ -12,12 +12,20 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from voice_authority.first_human_bootstrap_client import (
+    FirstHumanBootstrapClient,
+    FirstHumanBootstrapClientError,
+    FirstHumanBootstrapDenied,
+)
 from voice_authority.structured_proposal import (
     build_compute_purchase_proposal,
 )
 
 ASSEMBLYAI_TOKEN_URL = "https://agents.assemblyai.com/v1/token"
 ASSEMBLYAI_TOKEN_TTL_SECONDS = 300
+FIRST_HUMAN_BOOTSTRAP_SOCKET_ENV = (
+    "UCII_FIRST_HUMAN_BOOTSTRAP_SOCKET"
+)
 
 app = FastAPI(
     title="UCII Voice Authority Agent",
@@ -37,6 +45,50 @@ class AssemblyAIToolProposal(BaseModel):
     source_turn_reference: str
     tool_name: str
     arguments: dict[str, Any]
+
+
+class FirstHumanBootstrapBeginRequest(BaseModel):
+    """Browser request to begin protected first-HUMAN bootstrap."""
+
+    ceremony_id: str
+    human_name: str
+    target_identity_id: str
+    allowed_governance_operations: list[str]
+
+
+class FirstHumanBootstrapCompleteRequest(BaseModel):
+    """Browser possession submission for protected bootstrap."""
+
+    ceremony_id: str
+    human_identity_id: str
+    target_identity_id: str
+    factor_id: str
+    challenge_id: str
+    challenge_secret: str
+    selected_target_ids: list[str]
+    allowed_governance_operations: list[str]
+
+
+def _first_human_bootstrap_client() -> FirstHumanBootstrapClient:
+    socket_path = os.environ.get(
+        FIRST_HUMAN_BOOTSTRAP_SOCKET_ENV
+    )
+
+    if not socket_path:
+        raise HTTPException(
+            status_code=503,
+            detail="Protected UCII bootstrap is not configured.",
+        )
+
+    try:
+        return FirstHumanBootstrapClient(
+            socket_path=socket_path,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Protected UCII bootstrap configuration is invalid.",
+        ) from exc
 
 
 @app.get("/", response_class=FileResponse)
@@ -76,6 +128,78 @@ async def assemblyai_tool_proposal(
         ) from exc
 
     return asdict(proposal)
+
+
+@app.post("/human-bootstrap/begin")
+async def first_human_bootstrap_begin(
+    request: FirstHumanBootstrapBeginRequest,
+) -> dict[str, Any]:
+    """Relay a bounded begin request to protected UCII bootstrap."""
+
+    client = _first_human_bootstrap_client()
+
+    try:
+        return client.begin(
+            ceremony_id=request.ceremony_id,
+            human_name=request.human_name,
+            target_identity_id=request.target_identity_id,
+            allowed_governance_operations=(
+                request.allowed_governance_operations
+            ),
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid first-HUMAN bootstrap request.",
+        ) from exc
+    except FirstHumanBootstrapDenied as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        ) from exc
+    except FirstHumanBootstrapClientError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="Protected UCII bootstrap request failed.",
+        ) from exc
+
+
+@app.post("/human-bootstrap/complete")
+async def first_human_bootstrap_complete(
+    request: FirstHumanBootstrapCompleteRequest,
+) -> dict[str, Any]:
+    """Relay exact possession evidence to protected UCII bootstrap."""
+
+    client = _first_human_bootstrap_client()
+
+    try:
+        return client.complete(
+            ceremony_id=request.ceremony_id,
+            human_identity_id=request.human_identity_id,
+            target_identity_id=request.target_identity_id,
+            factor_id=request.factor_id,
+            challenge_id=request.challenge_id,
+            challenge_secret=request.challenge_secret,
+            selected_target_ids=request.selected_target_ids,
+            allowed_governance_operations=(
+                request.allowed_governance_operations
+            ),
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid first-HUMAN bootstrap submission.",
+        ) from exc
+    except FirstHumanBootstrapDenied as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        ) from exc
+    except FirstHumanBootstrapClientError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="Protected UCII bootstrap request failed.",
+        ) from exc
 
 
 @app.get("/health")
