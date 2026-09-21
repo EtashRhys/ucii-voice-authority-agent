@@ -50,7 +50,6 @@ class AssemblyAIToolProposal(BaseModel):
 class FirstHumanBootstrapBeginRequest(BaseModel):
     """Browser request to begin protected first-HUMAN bootstrap."""
 
-    ceremony_id: str
     human_name: str
     target_identity_id: str
     allowed_governance_operations: list[str]
@@ -140,7 +139,6 @@ async def first_human_bootstrap_begin(
 
     try:
         return client.begin(
-            ceremony_id=request.ceremony_id,
             human_name=request.human_name,
             target_identity_id=request.target_identity_id,
             allowed_governance_operations=(

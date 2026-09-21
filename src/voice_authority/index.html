@@ -394,8 +394,6 @@
             humanCeremonyInstruction.textContent =
                 "Requesting protected UCII possession challenge.";
 
-            const ceremonyId = crypto.randomUUID();
-
             try {
                 const response = await fetch(
                     "/human-bootstrap/begin",
@@ -405,7 +403,6 @@
                             "Content-Type": "application/json",
                         },
                         body: JSON.stringify({
-                            ceremony_id: ceremonyId,
                             human_name: HUMAN_BOOTSTRAP_NAME,
                             target_identity_id:
                                 HUMAN_BOOTSTRAP_TARGET_ID,
@@ -427,7 +424,8 @@
 
                 if (
                     result.status !== "pending" ||
-                    result.ceremony_id !== ceremonyId ||
+                    typeof result.ceremony_id !== "string" ||
+                    result.ceremony_id.length === 0 ||
                     typeof result.human_identity_id !== "string" ||
                     typeof result.factor_id !== "string" ||
                     typeof result.challenge !== "object" ||
@@ -473,7 +471,7 @@
                 }
 
                 humanCeremonyContext = {
-                    ceremonyId,
+                    ceremonyId: result.ceremony_id,
                     humanIdentityId: result.human_identity_id,
                     factorId: result.factor_id,
                     challengeId: result.challenge.challenge_id,

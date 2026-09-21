@@ -94,7 +94,6 @@ class FirstHumanBootstrapClientTests(unittest.TestCase):
         socket_factory.return_value = connection
 
         response = self.client.begin(
-            ceremony_id="ceremony-1",
             human_name="Brad Phee",
             target_identity_id="voice-identity",
             allowed_governance_operations=[
@@ -113,7 +112,6 @@ class FirstHumanBootstrapClientTests(unittest.TestCase):
             {
                 "version": PROTOCOL_VERSION,
                 "operation": BEGIN_OPERATION,
-                "ceremony_id": "ceremony-1",
                 "human_name": "Brad Phee",
                 "target_identity_id": "voice-identity",
                 "allowed_governance_operations": [
@@ -194,7 +192,6 @@ class FirstHumanBootstrapClientTests(unittest.TestCase):
             "already consumed",
         ):
             self.client.begin(
-                ceremony_id="ceremony-1",
                 human_name="Brad Phee",
                 target_identity_id="voice-identity",
                 allowed_governance_operations=[
@@ -214,7 +211,6 @@ class FirstHumanBootstrapClientTests(unittest.TestCase):
             "unknown status",
         ):
             self.client.begin(
-                ceremony_id="ceremony-1",
                 human_name="Brad Phee",
                 target_identity_id="voice-identity",
                 allowed_governance_operations=[
@@ -237,7 +233,6 @@ class FirstHumanBootstrapClientTests(unittest.TestCase):
             "incomplete begin-bootstrap response",
         ):
             self.client.begin(
-                ceremony_id="ceremony-1",
                 human_name="Brad Phee",
                 target_identity_id="voice-identity",
                 allowed_governance_operations=[
@@ -261,7 +256,6 @@ class FirstHumanBootstrapClientTests(unittest.TestCase):
             "response exceeded size limit",
         ):
             client.begin(
-                ceremony_id="ceremony-1",
                 human_name="Brad Phee",
                 target_identity_id="voice-identity",
                 allowed_governance_operations=[
@@ -298,29 +292,27 @@ class FirstHumanBootstrapClientTests(unittest.TestCase):
             "must not be wildcard",
         ):
             self.client.begin(
-                ceremony_id="ceremony-1",
                 human_name="Brad Phee",
                 target_identity_id="voice-identity",
                 allowed_governance_operations=["*"],
             )
 
     @patch("voice_authority.first_human_bootstrap_client.socket.socket")
-    def test_begin_rejects_mismatched_ceremony(
+    def test_begin_rejects_empty_ucii_ceremony_id(
         self,
         socket_factory,
     ):
         response = self._begin_response()
-        response["ceremony_id"] = "different-ceremony"
+        response["ceremony_id"] = ""
 
         connection = self._socket_with_response(response)
         socket_factory.return_value = connection
 
         with self.assertRaisesRegex(
             FirstHumanBootstrapClientError,
-            "mismatched begin-bootstrap response",
+            "invalid begin-bootstrap ceremony",
         ):
             self.client.begin(
-                ceremony_id="ceremony-1",
                 human_name="Brad Phee",
                 target_identity_id="voice-identity",
                 allowed_governance_operations=[
@@ -345,7 +337,6 @@ class FirstHumanBootstrapClientTests(unittest.TestCase):
             "mismatched bootstrap challenge",
         ):
             self.client.begin(
-                ceremony_id="ceremony-1",
                 human_name="Brad Phee",
                 target_identity_id="voice-identity",
                 allowed_governance_operations=[

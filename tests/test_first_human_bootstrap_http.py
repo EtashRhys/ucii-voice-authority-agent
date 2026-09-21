@@ -18,6 +18,7 @@ SOCKET_ENV = "UCII_FIRST_HUMAN_BOOTSTRAP_SOCKET"
 
 class FirstHumanBootstrapHttpTests(unittest.TestCase):
     def setUp(self) -> None:
+        os.environ.pop(SOCKET_ENV, None)
         self.client = TestClient(app)
 
     def tearDown(self) -> None:
@@ -27,7 +28,6 @@ class FirstHumanBootstrapHttpTests(unittest.TestCase):
         response = self.client.post(
             "/human-bootstrap/begin",
             json={
-                "ceremony_id": "ceremony-1",
                 "human_name": "Brad Phee",
                 "target_identity_id": "voice-identity",
                 "allowed_governance_operations": [
@@ -59,7 +59,6 @@ class FirstHumanBootstrapHttpTests(unittest.TestCase):
         response = self.client.post(
             "/human-bootstrap/begin",
             json={
-                "ceremony_id": "ceremony-1",
                 "human_name": "Brad Phee",
                 "target_identity_id": "voice-identity",
                 "allowed_governance_operations": [
@@ -75,7 +74,6 @@ class FirstHumanBootstrapHttpTests(unittest.TestCase):
             socket_path="/run/test/bootstrap.sock"
         )
         protected_client.begin.assert_called_once_with(
-            ceremony_id="ceremony-1",
             human_name="Brad Phee",
             target_identity_id="voice-identity",
             allowed_governance_operations=[
@@ -152,7 +150,6 @@ class FirstHumanBootstrapHttpTests(unittest.TestCase):
         response = self.client.post(
             "/human-bootstrap/begin",
             json={
-                "ceremony_id": "ceremony-1",
                 "human_name": "Brad Phee",
                 "target_identity_id": "voice-identity",
                 "allowed_governance_operations": [

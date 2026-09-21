@@ -131,7 +131,6 @@ class FirstHumanBootstrapClient:
     def begin(
         self,
         *,
-        ceremony_id: str,
         human_name: str,
         target_identity_id: str,
         allowed_governance_operations: list[str],
@@ -141,10 +140,6 @@ class FirstHumanBootstrapClient:
         request = {
             "version": PROTOCOL_VERSION,
             "operation": BEGIN_OPERATION,
-            "ceremony_id": _required_string(
-                ceremony_id,
-                field_name="ceremony_id",
-            ),
             "human_name": _required_string(
                 human_name,
                 field_name="human_name",
@@ -207,8 +202,17 @@ class FirstHumanBootstrapClient:
                 "UCII returned an incomplete bootstrap challenge"
             )
 
+        try:
+            _required_string(
+                response["ceremony_id"],
+                field_name="ceremony_id",
+            )
+        except ValueError as exc:
+            raise FirstHumanBootstrapClientError(
+                "UCII returned an invalid begin-bootstrap ceremony"
+            ) from exc
+
         expected_bindings = {
-            "ceremony_id": request["ceremony_id"],
             "human_name": request["human_name"],
             "target_identity_id": request["target_identity_id"],
             "allowed_governance_operations": (
