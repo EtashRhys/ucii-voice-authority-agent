@@ -972,3 +972,170 @@ Only after that contract is frozen should implementation changes be evaluated.
 
     NEXT:
         OBJECTIVE 0D — FREEZE HUMAN AUTHORITY CEREMONY CONTRACT
+
+---
+
+## 2026-09-20 — Final Authority Lifecycle Pre-3G Checkpoint
+
+### Current project position
+
+The AssemblyAI Voice Authority Agent has completed the production infrastructure
+and cryptographic activation work required before the final authority lifecycle
+demonstration.
+
+The project remains governed by the core separation:
+
+    VOICE
+        != INTENT
+        != IDENTITY
+        != AUTHENTICATION
+        != STEP-UP
+        != AUTHORITY
+        != AUTHORIZATION
+        != ENTITLEMENT
+        != PAYMENT
+        != EXECUTION
+
+AssemblyAI supplies the conversational/transcription interface. It is not a UCII
+authority source.
+
+### Production gates completed
+
+The following deployment gates are complete:
+
+1. dedicated Voice Unix principals;
+2. protected custody runtime generation;
+3. dedicated Voice signer service;
+4. production signing credential and first-party entitlement bound to the
+   existing Voice identity;
+5. real protected ML-DSA-65 signing proof against the registered UCII public
+   credential.
+
+The existing production objects are durable and MUST NOT be recreated:
+
+Voice identity:
+
+    9df0ff8a-25d0-4340-be32-05e8263f1277
+
+Signing credential:
+
+    fca03fa4-32c6-49fe-87b2-4b9e56453a66
+
+Service entitlement:
+
+    0522e726-035e-4254-a131-63a042a9fbbc
+
+The protected signer is operational and the Voice application does not receive
+the private signing material.
+
+### Remaining original demonstration gate
+
+The remaining original deployment gate is the final authority lifecycle proof:
+
+    no delegated authority
+        -> DENY
+        -> legitimate HUMAN-governed GRANT
+        -> bounded authorized execution
+        -> out-of-policy request DENY
+        -> legitimate REVOKE
+        -> same formerly authorized request DENY
+
+Every consequential execution must use a fresh authority decision.
+
+The current target operation is:
+
+    compute.purchase
+
+The UCII ActionAuthority record scopes exact operations. It does not itself
+encode monetary value. The final USD 35 versus USD 5,000 demonstration therefore
+requires a separately verified real economic/budget policy seam and must not
+attribute that distinction to ActionAuthority unless such a bound is actually
+implemented there.
+
+### Units 3A through 3F result
+
+The final-lifecycle investigation established that UCII now has the generic
+delegated execution contract and the reusable HUMAN ceremony components needed
+after governance exists.
+
+It also established a previously unresolved prerequisite.
+
+Production currently contains:
+
+    HUMAN identities: 0
+
+There is therefore no existing production HUMAN principal/factor/governance
+relationship that can legitimately authorize the Voice Authority grant/revoke
+ceremony.
+
+The available HUMAN governance relationship service cannot solve this by
+itself. It deliberately requires its caller to establish authorization
+independently.
+
+The available step-up machinery also cannot manufacture that authorization.
+
+This means the project has exposed a real UCII-core gap:
+
+> UCII currently lacks an implemented production first-HUMAN governance
+> bootstrap path.
+
+This is the missing first link required before the ordinary HUMAN lifecycle
+ceremony can legitimately operate.
+
+### Why the project stops here instead of bypassing the gap
+
+The demo MUST NOT be completed by creating fake or alternate authority.
+
+Specifically, do not:
+
+- manufacture a HUMAN row directly;
+- manufacture an ACTIVE factor directly;
+- manufacture a governance relationship directly;
+- make AssemblyAI or the LLM an authority source;
+- make entitlement an authority source;
+- make payment an authority source;
+- expose raw controller authority to the Voice runtime;
+- use a Voice-specific bypass that would not be valid reusable UCII behavior.
+
+The final lifecycle remains fail-closed until UCII has a legitimate bootstrap
+path.
+
+### Adoption hypothesis discovered during investigation
+
+The missing first-HUMAN bootstrap may also be relevant to UCII's observed zero
+completed adoption.
+
+It is a confirmed blocker to completing any path that reaches a HUMAN-governed
+authority boundary without an already established HUMAN governance root.
+
+It is NOT yet proven to be the reason no external AI agent or human has adopted
+UCII.
+
+The distinction is important:
+
+- if Ambassador interactions reached explicit opt-in/onboarding intent and then
+  stopped at unresolved authority, this defect may explain failed completion;
+- if interactions never reached adoption interest, explicit opt-in, or
+  onboarding intent, the principal friction is upstream.
+
+The real Ambassador adoption history should therefore be inspected after this
+checkpoint is safely committed, rather than assuming causation.
+
+### Exact resume point
+
+Do not restart signer, custody, credential, entitlement, identity, enrollment,
+or delegated-execution work.
+
+Resume at:
+
+    UNIT 3G — PROTECTED FIRST-HUMAN BOOTSTRAP REUSE BOUNDARY
+
+Unit 3G must first inspect the existing protected controller lifecycle
+authorization pattern and determine whether it can safely anchor the smallest
+reusable UCII first-HUMAN bootstrap primitive.
+
+After the first-HUMAN governance prerequisite is resolved, return directly to
+the final Voice Authority lifecycle proof.
+
+The Ambassador adoption-funnel investigation remains a separate evidence task
+and must not replace completion of the Voice Authority hackathon path.
