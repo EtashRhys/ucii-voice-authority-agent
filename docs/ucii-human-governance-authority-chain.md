@@ -1139,3 +1139,174 @@ the final Voice Authority lifecycle proof.
 
 The Ambassador adoption-funnel investigation remains a separate evidence task
 and must not replace completion of the Voice Authority hackathon path.
+
+
+---
+
+## 2026-09-20 — Domain Bootstrap, Recovery, Succession, and Factory-Reset Requirements
+
+### Clarification: the first HUMAN is domain-scoped
+
+The first-HUMAN governance problem discovered during the Voice Authority
+lifecycle investigation is NOT a requirement to make Brad, UCII Labs, or any
+other person the permanent supreme authority for all UCII.
+
+It is the requirement to establish the first legitimate HUMAN governance
+authority for a particular adopter's governance domain.
+
+Conceptually:
+
+    new adopter / uninitialized domain
+        -> protected first-HUMAN bootstrap
+        -> adopter's initial HUMAN governance authority
+        -> bootstrap closes
+        -> normal governance
+
+Separate adopters and governance domains must remain authority-isolated.
+
+Participation in bootstrap MUST NOT give UCII Labs, an operator, or the first
+HUMAN a hidden universal authority over unrelated domains.
+
+### The first HUMAN cannot be a permanent single point of failure
+
+The initial HUMAN governance principal must not become an immortal controller
+whose loss permanently kills access to the governed domain.
+
+The architecture must distinguish:
+
+    normal succession / replacement
+        !=
+    recovery
+        !=
+    factory reset
+
+Normal succession applies when valid governance remains available and can
+legitimately add, replace, or remove controllers.
+
+Recovery applies when ordinary governance is unavailable or unsafe, including
+lost credentials, compromise, incapacity, departure, or other lockout
+conditions.
+
+Factory reset is the destructive option for intentionally terminating the
+existing governance domain state and returning that domain to a new
+initialization boundary.
+
+### Recovery must not depend on the lost authority
+
+A recovery design that depends only on the first HUMAN's everyday credential or
+factor does not solve loss of that credential or factor.
+
+The recovery mechanism therefore must be independently established and
+protected.
+
+It must not turn UCII Labs or the Voice application into a master recovery
+authority.
+
+Recovery must be attributable, fail closed, and capable of invalidating
+compromised governance authority before normal governance resumes.
+
+### Factory reset is not ordinary revocation
+
+Factory reset must not be implemented as merely deleting the original HUMAN or
+revoking one relationship.
+
+A true reset must terminate the old governance generation and invalidate the
+authority-bearing state that could otherwise survive into a fresh bootstrap.
+
+The exact implementation remains a UCII-core design task, but the contract must
+cover, as applicable:
+
+- HUMAN governance relationships;
+- delegated authorities;
+- credentials;
+- sessions and refresh state;
+- step-up factors/challenges/evidence;
+- lifecycle authorizations;
+- recovery material;
+- controller authority;
+- domain-scoped entitlements;
+- outstanding economic/execution authority; and
+- other stale capabilities tied to the terminated governance generation.
+
+Required immutable provenance/audit evidence should remain available according
+to its retention contract. Resetting authority is not permission to falsify or
+erase historical evidence.
+
+### Governance generation / epoch
+
+The UCII-core design should evaluate an explicit governance generation or
+equivalent epoch mechanism.
+
+The desired invariant is:
+
+    generation N
+        -> protected destructive reset
+        -> generation N terminated
+        -> protected first-HUMAN bootstrap
+        -> generation N+1
+
+Authority issued solely under generation N must not resurrect in generation
+N+1.
+
+This includes stale credentials, sessions, delegated authority, lifecycle
+authorizations, recovery artifacts, or other capabilities that would otherwise
+reintroduce the destroyed authority state.
+
+### Bootstrap must close
+
+First-HUMAN bootstrap is a special ceremony available only to a legitimately
+uninitialized governance domain.
+
+After initialization it must close.
+
+It must not be reopened by:
+
+- voice;
+- an LLM;
+- successful authentication;
+- possession of a normal step-up factor;
+- entitlement;
+- x402 payment;
+- agent identity;
+- ordinary application credentials; or
+- a caller merely claiming to be the owner.
+
+Subsequent governance changes must use ordinary governance, independently
+protected recovery, or explicitly authorized destructive reset.
+
+### Voice Authority implication
+
+For the current Voice Authority deployment, Brad may become the first
+legitimate HUMAN governance principal for this specific Voice Authority
+governance domain once the reusable UCII bootstrap primitive exists.
+
+That must not imply authority over every UCII adopter or unrelated governance
+domain.
+
+The Voice project must consume the reusable UCII lifecycle rather than invent a
+Voice-specific root.
+
+### Expanded acceptance requirements before first-HUMAN implementation
+
+The next UCII-core design work must account for the complete lifecycle:
+
+1. establish the first HUMAN legitimately;
+2. close bootstrap after initialization;
+3. support normal controller succession/replacement;
+4. prevent the first HUMAN from becoming an immortal root;
+5. provide independent recovery from loss or compromise;
+6. avoid permanent domain lockout;
+7. provide an explicitly protected destructive factory-reset path;
+8. invalidate old authority across reset using a generation/epoch or equivalent
+   boundary;
+9. retain required immutable provenance;
+10. prevent UCII Labs/operator infrastructure from becoming a hidden skeleton
+    key.
+
+UNIT 3G remains read-only first. It must inspect whether the existing protected
+controller lifecycle trust boundary can anchor these requirements before any new
+UCII-core primitive is implemented.
+
+The frozen Human Authority Ceremony contract remains historical/frozen and is
+not modified by this checkpoint. These newly discovered lifecycle requirements
+are recorded here as the current governing implementation constraint.
