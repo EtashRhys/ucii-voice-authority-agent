@@ -41,6 +41,21 @@ VOICE_AUTHORITY_CONSOLE_MASTER_PATH = (
     / "voice-authority-console-master.png"
 )
 
+THREE_MODULE_PATH = (
+    Path(__file__).with_name("assets")
+    / "three.module.js"
+)
+
+THREE_CORE_PATH = (
+    Path(__file__).with_name("assets")
+    / "three.core.js"
+)
+
+EARTH_SURFACE_PATH = (
+    Path(__file__).with_name("assets")
+    / "earth-surface-2048.jpg"
+)
+
 
 class AssemblyAIToolProposal(BaseModel):
     """Untrusted AssemblyAI proposal facts submitted by the browser."""
@@ -109,6 +124,36 @@ async def voice_authority_console_master() -> FileResponse:
     return FileResponse(
         VOICE_AUTHORITY_CONSOLE_MASTER_PATH,
         media_type="image/png",
+    )
+
+
+@app.get("/three.module.js", response_class=FileResponse)
+async def three_module() -> FileResponse:
+    """Serve the pinned self-hosted Three.js browser module."""
+    return FileResponse(
+        THREE_MODULE_PATH,
+        media_type="text/javascript",
+    )
+
+
+@app.get("/three.core.js", response_class=FileResponse)
+async def three_core() -> FileResponse:
+    """Serve the pinned self-hosted Three.js core module."""
+    return FileResponse(
+        THREE_CORE_PATH,
+        media_type="text/javascript",
+    )
+
+
+@app.get(
+    "/earth-surface-2048.jpg",
+    response_class=FileResponse,
+)
+async def earth_surface() -> FileResponse:
+    """Serve the local Earth surface texture."""
+    return FileResponse(
+        EARTH_SURFACE_PATH,
+        media_type="image/jpeg",
     )
 
 

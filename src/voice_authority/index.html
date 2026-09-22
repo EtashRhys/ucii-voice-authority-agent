@@ -6,146 +6,932 @@
         name="viewport"
         content="width=device-width, initial-scale=1"
     >
-    <title>UCII Voice Authority Agent</title>
+    <title>UCII Voice Authority Console</title>
     <style>
-        .human-ceremony {
-            margin-top: 2rem;
-            padding: 1rem;
-            border: 1px solid currentColor;
-            max-width: 44rem;
+        :root {
+            color-scheme: dark;
+            background: #02060a;
         }
 
-        .human-ceremony-targets {
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            min-width: 100%;
+            min-height: 100%;
+            margin: 0;
+            background:
+                radial-gradient(
+                    circle at 50% 45%,
+                    #07131b 0,
+                    #02070b 48%,
+                    #000 100%
+                );
+        }
+
+        body {
+            min-height: 100vh;
+            overflow-x: hidden;
+            font-family:
+                Inter,
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+        }
+
+        .console-viewport {
+            width: 100%;
+            min-height: 100vh;
+            display: grid;
+            place-items: start center;
+            overflow: hidden;
+        }
+
+        /*
+         * Native design coordinate system:
+         *     1672 × 941
+         *
+         * Every future live region is positioned inside this stage.
+         * The canonical PNG remains unchanged underneath.
+         */
+        .console-stage {
+            position: relative;
+            width: min(100vw, calc(100vh * 1672 / 941));
+            aspect-ratio: 1672 / 941;
+            flex: 0 0 auto;
+            overflow: hidden;
+            isolation: isolate;
+            background: #02070b;
+        }
+
+        .console-master {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        /*
+         * Overlay layers deliberately start empty.
+         *
+         * mask-layer:
+         *   Covers only baked pixels that become dynamic.
+         *
+         * motion-layer:
+         *   Globe / energy / real audio visualization.
+         *
+         * data-layer:
+         *   Transcript, authority, evidence and status facts.
+         *
+         * control-layer:
+         *   Real interactive controls aligned to the artwork.
+         */
+        .overlay-layer {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .mask-layer {
+            z-index: 10;
+        }
+
+        .motion-layer {
+            z-index: 20;
+        }
+
+        .data-layer {
+            z-index: 30;
+        }
+
+        .control-layer {
+            z-index: 40;
+        }
+
+
+        /*
+         * LIVE VOICE SURFACE
+         *
+         * Calibrated native rectangle:
+         *     left   = 278 / 1672
+         *     top    = 240 / 941
+         *     width  = 547 / 1672
+         *     height = 148 / 941
+         *
+         * This covers only the measured interior of the
+         * canonical YOUR VOICE card. Its original outer
+         * frame remains visible.
+         */
+        .live-voice-surface {
+            position: absolute;
+            left: calc(100% * 278 / 1672);
+            top: calc(100% * 240 / 941);
+            width: calc(100% * 547 / 1672);
+            height: calc(100% * 148 / 941);
+            z-index: 31;
+            overflow: hidden;
+            pointer-events: none;
+            color: #f5f8fb;
+            background:
+                radial-gradient(
+                    ellipse at 50% 48%,
+                    rgb(24, 15, 8) 0%,
+                    rgb(12, 12, 11) 52%,
+                    rgb(5, 8, 10) 100%
+                );
+            box-shadow:
+                inset 0 0 18px rgba(255, 116, 18, 0.055);
+        }
+
+        .live-voice-header {
+            position: absolute;
+            left: 2.6%;
+            right: 2.6%;
+            top: 4.5%;
+            height: 18%;
             display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-            margin: 1rem 0;
+            align-items: center;
+            justify-content: space-between;
         }
 
-        .human-ceremony-target {
-            width: 4rem;
-            height: 4rem;
-            border: 2px solid currentColor;
+        .live-voice-title {
+            display: flex;
+            align-items: center;
+            gap: 0.45em;
+            color: #ff982f;
+            font-size: clamp(7px, 0.70vw, 14px);
+            font-weight: 800;
+            letter-spacing: 0.055em;
+            white-space: nowrap;
+        }
+
+        .live-voice-title-icon {
+            position: relative;
+            width: 1.25em;
+            height: 1.25em;
             border-radius: 50%;
-            background: transparent;
-            font: inherit;
-            font-size: 1.15rem;
-            cursor: pointer;
+            border: 1px solid rgba(255, 151, 47, 0.85);
+            box-shadow:
+                0 0 5px rgba(255, 126, 20, 0.38);
         }
 
-        .human-ceremony-target[aria-pressed="true"] {
-            font-weight: bold;
-            outline: 3px solid currentColor;
+        .live-voice-title-icon::before {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 18%;
+            width: 24%;
+            height: 48%;
+            transform: translateX(-50%);
+            border: 1px solid #ff982f;
+            border-radius: 999px;
+        }
+
+        .live-voice-title-icon::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            bottom: 14%;
+            width: 56%;
+            height: 28%;
+            transform: translateX(-50%);
+            border-bottom: 1px solid #ff982f;
+            border-radius: 0 0 999px 999px;
+        }
+
+        .live-voice-state {
+            display: flex;
+            align-items: center;
+            gap: 0.42em;
+            color: #ff982f;
+            font-size: clamp(6px, 0.58vw, 12px);
+            font-weight: 800;
+            letter-spacing: 0.08em;
+        }
+
+        .live-voice-state-dot {
+            width: 0.58em;
+            height: 0.58em;
+            border-radius: 50%;
+            background: #6e7478;
+            box-shadow: none;
+        }
+
+        .live-voice-surface.is-live
+        .live-voice-state-dot {
+            background: #ff8f25;
+            box-shadow:
+                0 0 4px #ff8f25,
+                0 0 9px rgba(255, 116, 20, 0.72);
+            animation:
+                live-voice-dot-pulse 1.1s ease-in-out infinite;
+        }
+
+        .live-voice-wave-shell {
+            position: absolute;
+            left: 2.3%;
+            right: 2.3%;
+            top: 25%;
+            height: 47%;
+            overflow: hidden;
+        }
+
+        #live-voice-waveform {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .live-voice-footer {
+            position: absolute;
+            left: 2.8%;
+            right: 2.8%;
+            bottom: 5%;
+            height: 18%;
+            display: flex;
+            align-items: center;
+            gap: 1em;
+            min-width: 0;
+        }
+
+        .live-voice-transcript {
+            min-width: 0;
+            flex: 1 1 auto;
+            overflow: hidden;
+            color: rgba(247, 249, 251, 0.94);
+            font-size: clamp(6px, 0.61vw, 12px);
+            font-style: italic;
+            font-weight: 600;
+            line-height: 1.2;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .live-voice-transcript.idle {
+            color: rgba(194, 199, 204, 0.58);
+            font-style: normal;
+            font-weight: 500;
+        }
+
+        .live-voice-elapsed {
+            flex: 0 0 auto;
+            color: rgba(185, 190, 194, 0.78);
+            font-family:
+                ui-monospace,
+                SFMono-Regular,
+                Menlo,
+                Consolas,
+                monospace;
+            font-size: clamp(6px, 0.58vw, 12px);
+            letter-spacing: 0.05em;
+        }
+
+
+        /*
+         * LIVE BOTTOM VOICE CONTROL
+         *
+         * Native calibrated interior:
+         *     (266,805) -> (1357,889)
+         *
+         * The canonical artwork remains untouched underneath.
+         */
+        .live-bottom-voice-control {
+            position: absolute;
+            left: calc(100% * 266 / 1672);
+            top: calc(100% * 805 / 941);
+            width: calc(100% * 1091 / 1672);
+            height: calc(100% * 84 / 941);
+            z-index: 42;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            pointer-events: auto;
+            background:
+                linear-gradient(
+                    90deg,
+                    rgba(18, 14, 10, 0.985) 0%,
+                    rgba(7, 12, 15, 0.985) 18%,
+                    rgba(6, 12, 15, 0.985) 82%,
+                    rgba(20, 13, 7, 0.985) 100%
+                );
+        }
+
+        .live-bottom-mic-button {
+            position: relative;
+            flex: 0 0 auto;
+            width: 6.9%;
+            aspect-ratio: 1;
+            margin-left: 1.45%;
+            padding: 0;
+            border: 1px solid rgba(255, 149, 43, 0.95);
+            border-radius: 50%;
+            cursor: pointer;
+            background:
+                radial-gradient(
+                    circle at 50% 45%,
+                    rgba(255, 139, 31, 0.30),
+                    rgba(67, 28, 4, 0.80) 58%,
+                    rgba(20, 12, 6, 0.98) 100%
+                );
+            box-shadow:
+                0 0 5px rgba(255, 145, 38, 0.95),
+                0 0 16px rgba(255, 103, 10, 0.62),
+                inset 0 0 10px rgba(255, 153, 45, 0.22);
+            color: #fff;
+        }
+
+        .live-bottom-mic-button:hover {
+            box-shadow:
+                0 0 7px rgba(255, 170, 65, 1),
+                0 0 22px rgba(255, 103, 10, 0.82),
+                inset 0 0 12px rgba(255, 153, 45, 0.30);
+        }
+
+        .live-bottom-mic-button:focus-visible {
+            outline: 2px solid #ffffff;
             outline-offset: 2px;
         }
 
-        .human-ceremony-target:disabled {
-            cursor: default;
-            opacity: 0.65;
+        .live-bottom-mic-button:disabled {
+            cursor: wait;
+            opacity: 0.72;
+        }
+
+        .live-bottom-mic-glyph {
+            position: absolute;
+            left: 50%;
+            top: 21%;
+            width: 25%;
+            height: 39%;
+            transform: translateX(-50%);
+            border: 2px solid currentColor;
+            border-radius: 999px;
+        }
+
+        .live-bottom-mic-glyph::before {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 73%;
+            width: 170%;
+            height: 70%;
+            transform: translateX(-50%);
+            border: 2px solid currentColor;
+            border-top: 0;
+            border-radius: 0 0 999px 999px;
+        }
+
+        .live-bottom-mic-glyph::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 137%;
+            width: 2px;
+            height: 35%;
+            transform: translateX(-50%);
+            background: currentColor;
+            box-shadow:
+                -0.28em 0.42em 0 -0.02em currentColor,
+                0.28em 0.42em 0 -0.02em currentColor;
+        }
+
+        .live-bottom-voice-copy {
+            min-width: 0;
+            flex: 1 1 auto;
+            margin-left: 2.1%;
+        }
+
+        .live-bottom-voice-primary {
+            color: rgba(248, 249, 250, 0.96);
+            font-size: clamp(8px, 0.83vw, 16px);
+            line-height: 1.1;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .live-bottom-voice-secondary {
+            margin-top: 0.35em;
+            overflow: hidden;
+            color: rgba(188, 196, 201, 0.78);
+            font-size: clamp(6px, 0.58vw, 11px);
+            line-height: 1.1;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .live-bottom-voice-control.is-live
+        .live-bottom-mic-button {
+            background:
+                radial-gradient(
+                    circle at 50% 45%,
+                    rgba(255, 155, 39, 0.50),
+                    rgba(98, 32, 2, 0.92) 60%,
+                    rgba(25, 8, 2, 1) 100%
+                );
+            box-shadow:
+                0 0 8px rgba(255, 169, 55, 1),
+                0 0 25px rgba(255, 91, 5, 0.92),
+                inset 0 0 12px rgba(255, 174, 60, 0.34);
+        }
+
+        .live-bottom-stop-symbol {
+            display: none;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 25%;
+            aspect-ratio: 1;
+            transform: translate(-50%, -50%);
+            border-radius: 12%;
+            background: #fff;
+        }
+
+        .live-bottom-voice-control.is-live
+        .live-bottom-mic-glyph {
+            display: none;
+        }
+
+        .live-bottom-voice-control.is-live
+        .live-bottom-stop-symbol {
+            display: block;
+        }
+
+        @keyframes live-voice-dot-pulse {
+            0%,
+            100% {
+                opacity: 0.52;
+                transform: scale(0.82);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.16);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .live-voice-surface.is-live
+            .live-voice-state-dot {
+                animation: none;
+            }
+        }
+
+        /*
+         * CENTER EARTH — CODE RENDERED
+         *
+         * Native measured coordinates:
+         *     TL = (654,400)
+         *     BR = (1020,794)
+         *
+         * No image is rendered inside this surface.
+         */
+        .authority-earth-surface {
+            position: absolute;
+            left: calc(100% * 654 / 1672);
+            top: calc(100% * 400 / 941);
+            width: calc(100% * 366 / 1672);
+            height: calc(100% * 394 / 941);
+            overflow: hidden;
+            pointer-events: none;
+            isolation: isolate;
+
+            background:
+                radial-gradient(
+                    ellipse at 50% 42%,
+                    rgba(8, 20, 29, 0.98) 0%,
+                    rgba(3, 11, 17, 0.99) 55%,
+                    rgb(2, 7, 10) 100%
+                );
+        }
+
+        .authority-earth-canvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 88%;
+            display: block;
+        }
+
+        .authority-earth-tagline {
+            position: absolute;
+            left: 2%;
+            right: 2%;
+            bottom: 3.5%;
+            z-index: 5;
+
+            text-align: center;
+            color: rgba(220, 235, 243, 0.94);
+
+            font-size:
+                clamp(6px, 0.61vw, 12px);
+
+            line-height: 1.25;
+            letter-spacing: 0.105em;
+            text-transform: uppercase;
+
+            text-shadow:
+                0 0 6px rgba(45, 167, 225, 0.22);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .authority-earth-canvas {
+                /* Canvas renderer also checks this preference. */
+            }
+        }
+
+
+        /*
+         * DEVELOPMENT CALIBRATION INSTRUMENT
+         *
+         * Native coordinate space is always 1672 × 941.
+         * Toggle with G. This layer is invisible by default.
+         */
+        .calibration-layer {
+            position: absolute;
+            inset: 0;
+            z-index: 1000;
+            display: none;
+            pointer-events: none;
+            font-family:
+                ui-monospace,
+                SFMono-Regular,
+                Menlo,
+                Consolas,
+                monospace;
+        }
+
+        .console-stage.calibration-enabled
+        .calibration-layer {
+            display: block;
+        }
+
+        .calibration-grid {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(
+                    to right,
+                    rgba(0, 255, 255, 0.16) 1px,
+                    transparent 1px
+                ),
+                linear-gradient(
+                    to bottom,
+                    rgba(0, 255, 255, 0.16) 1px,
+                    transparent 1px
+                ),
+                linear-gradient(
+                    to right,
+                    rgba(255, 153, 0, 0.30) 1px,
+                    transparent 1px
+                ),
+                linear-gradient(
+                    to bottom,
+                    rgba(255, 153, 0, 0.30) 1px,
+                    transparent 1px
+                );
+            background-size:
+                calc(100% * 50 / 1672) 100%,
+                100% calc(100% * 50 / 941),
+                calc(100% * 100 / 1672) 100%,
+                100% calc(100% * 100 / 941);
+        }
+
+        .calibration-crosshair-x,
+        .calibration-crosshair-y {
+            position: absolute;
+            display: none;
+            background: rgba(255, 255, 255, 0.92);
+            filter:
+                drop-shadow(0 0 2px rgba(0, 0, 0, 1));
+        }
+
+        .calibration-crosshair-x {
+            left: 0;
+            width: 100%;
+            height: 1px;
+        }
+
+        .calibration-crosshair-y {
+            top: 0;
+            width: 1px;
+            height: 100%;
+        }
+
+        .calibration-readout {
+            position: absolute;
+            left: 12px;
+            top: 12px;
+            min-width: 210px;
+            padding: 7px 10px;
+            border:
+                1px solid rgba(0, 255, 255, 0.72);
+            border-radius: 5px;
+            background: rgba(0, 5, 9, 0.90);
+            color: #dffcff;
+            font-size: 12px;
+            line-height: 1.35;
+            letter-spacing: 0.02em;
+            box-shadow:
+                0 0 12px rgba(0, 190, 255, 0.22);
+        }
+
+        .calibration-readout strong {
+            color: #ffae43;
+        }
+
+        /*
+         * Existing browser-bound elements remain alive for the
+         * preserved JavaScript. They are intentionally off-canvas
+         * until each one is promoted into a real overlay region.
+         *
+         * Do not use display:none: buttons and status elements must
+         * remain normal DOM objects for the current control logic.
+         */
+        .functional-boundary {
+            position: fixed;
+            left: -10000px;
+            top: 0;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .functional-boundary button {
+            width: 1px;
+            height: 1px;
+        }
+
+        @media (max-aspect-ratio: 1672 / 941) {
+            .console-stage {
+                width: 100vw;
+            }
         }
     </style>
 </head>
 <body>
-    <main>
-        <h1>UCII Voice Authority Agent</h1>
+    <main class="console-viewport">
+        <section
+            class="console-stage"
+            id="voice-authority-stage"
+            aria-labelledby="voice-proof-heading"
+        >
+            <img
+                class="console-master"
+                src="/voice-authority-console-master.png"
+                width="1672"
+                height="941"
+                alt=""
+                draggable="false"
+            >
 
-        <p>
-            Conversation is the interface. UCII is the control plane.
-        </p>
+            <div
+                class="overlay-layer mask-layer"
+                id="overlay-mask-layer"
+                aria-hidden="true"
+            ></div>
 
-        <section aria-labelledby="voice-proof-heading">
-            <h2 id="voice-proof-heading">AssemblyAI Voice Proof</h2>
+            <div
+                class="overlay-layer motion-layer"
+                id="overlay-motion-layer"
+                aria-hidden="true"
+            >
+                <div
+                    class="authority-earth-surface"
+                    id="authority-earth-surface"
+                >
+                    <canvas
+                        class="authority-earth-canvas"
+                        id="authority-earth-canvas"
+                        aria-label="Rotating Earth visualization"
+                    ></canvas>
+
+                    <div class="authority-earth-tagline">
+                        UNDERSTANDING ENABLES POSSIBILITY.<br>
+                        UCII GOVERNS REALITY.
+                    </div>
+                </div>
+            </div>
+
+            <div
+                class="overlay-layer data-layer"
+                id="overlay-data-layer"
+            >
+                <section
+                    class="live-voice-surface"
+                    id="live-voice-surface"
+                    aria-label="Live microphone input"
+                >
+                    <div class="live-voice-header">
+                        <div class="live-voice-title">
+                            <span
+                                class="live-voice-title-icon"
+                                aria-hidden="true"
+                            ></span>
+                            <span>YOUR VOICE (INPUT)</span>
+                        </div>
+
+                        <div class="live-voice-state">
+                            <span
+                                class="live-voice-state-dot"
+                                aria-hidden="true"
+                            ></span>
+                            <span id="live-voice-state-text">
+                                IDLE
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="live-voice-wave-shell">
+                        <canvas
+                            id="live-voice-waveform"
+                            aria-label="Real-time microphone waveform"
+                        ></canvas>
+                    </div>
+
+                    <div class="live-voice-footer">
+                        <div
+                            class="live-voice-transcript idle"
+                            id="live-voice-transcript"
+                        >
+                            Waiting for microphone input…
+                        </div>
+
+                        <div
+                            class="live-voice-elapsed"
+                            id="live-voice-elapsed"
+                        >
+                            00:00
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div
+                class="overlay-layer control-layer"
+                id="overlay-control-layer"
+            >
+                <section
+                    class="live-bottom-voice-control"
+                    id="live-bottom-voice-control"
+                    aria-label="Voice input control"
+                >
+                    <button
+                        class="live-bottom-mic-button"
+                        id="live-bottom-mic-button"
+                        type="button"
+                        aria-label="Start microphone"
+                        aria-pressed="false"
+                    >
+                        <span
+                            class="live-bottom-mic-glyph"
+                            aria-hidden="true"
+                        ></span>
+                        <span
+                            class="live-bottom-stop-symbol"
+                            aria-hidden="true"
+                        ></span>
+                    </button>
+
+                    <div class="live-bottom-voice-copy">
+                        <div
+                            class="live-bottom-voice-primary"
+                            id="live-bottom-voice-primary"
+                        >
+                            Tap to speak or hold...
+                        </div>
+
+                        <div class="live-bottom-voice-secondary">
+                            Try: “Allow me to purchase $35 of compute”
+                            or “Revoke compute authority”
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+
+            <div
+                class="calibration-layer"
+                id="calibration-layer"
+                aria-hidden="true"
+            >
+                <div class="calibration-grid"></div>
+                <div
+                    class="calibration-crosshair-x"
+                    id="calibration-crosshair-x"
+                ></div>
+                <div
+                    class="calibration-crosshair-y"
+                    id="calibration-crosshair-y"
+                ></div>
+                <div
+                    class="calibration-readout"
+                    id="calibration-readout"
+                >
+                    NATIVE 1672 × 941<br>
+                    <strong>X 0 / Y 0</strong><br>
+                    G = toggle grid
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <section
+        class="functional-boundary"
+        aria-hidden="true"
+    >
+        <h1 id="voice-proof-heading">
+            UCII Voice Authority Agent
+        </h1>
+
+        <section>
+            <h2>Microphone</h2>
+            <p id="microphone-status">IDLE</p>
+
+            <button id="start-microphone" type="button">
+                Start microphone
+            </button>
+
+            <button
+                id="stop-microphone"
+                type="button"
+                disabled
+            >
+                Stop microphone
+            </button>
+        </section>
+
+        <section>
+            <h2>AssemblyAI</h2>
+            <p id="assemblyai-status">DISCONNECTED</p>
+
+            <button id="connect-assemblyai" type="button">
+                Connect AssemblyAI
+            </button>
+
+            <button
+                id="disconnect-assemblyai"
+                type="button"
+                disabled
+            >
+                Disconnect AssemblyAI
+            </button>
 
             <dl>
-                <dt>Microphone</dt>
-                <dd id="microphone-status">NOT STARTED</dd>
-
-                <dt>Microphone input</dt>
-                <dd>
-                    <button id="start-microphone" type="button">
-                        Start Microphone
-                    </button>
-                    <button id="stop-microphone" type="button" disabled>
-                        Stop Microphone
-                    </button>
-                </dd>
-
-                <dt>AssemblyAI session</dt>
-                <dd id="assemblyai-status">NOT CONNECTED</dd>
-
-                <dt>AssemblyAI connection</dt>
-                <dd>
-                    <button id="connect-assemblyai" type="button">
-                        Connect AssemblyAI
-                    </button>
-                    <button
-                        id="disconnect-assemblyai"
-                        type="button"
-                        disabled
-                    >
-                        Disconnect AssemblyAI
-                    </button>
-                </dd>
-
                 <dt>Audio chunks sent</dt>
                 <dd id="audio-chunks-sent">0</dd>
 
-                <dt>PCM16 bytes sent</dt>
+                <dt>Audio bytes sent</dt>
                 <dd id="audio-bytes-sent">0</dd>
 
-                <dt>AssemblyAI speech detection</dt>
+                <dt>Speech detection</dt>
                 <dd id="speech-detection">NONE</dd>
 
-                <dt>Latest AssemblyAI server event</dt>
+                <dt>Server event</dt>
                 <dd id="assemblyai-server-event">NONE</dd>
 
-                <dt>Partial user transcript</dt>
+                <dt>Partial turn</dt>
                 <dd id="partial-turn">NONE</dd>
 
-                <dt>Finalized user turn</dt>
+                <dt>Finalized turn</dt>
                 <dd id="finalized-turn">NONE</dd>
 
-                <dt>Validated bounded request</dt>
+                <dt>Validated proposal</dt>
                 <dd id="validated-proposal">NONE</dd>
 
-                <dt>Consequential execution</dt>
-                <dd id="execution-status">DISABLED</dd>
+                <dt>Execution</dt>
+                <dd id="execution-status">NOT PERFORMED</dd>
             </dl>
         </section>
 
-        <p>
-            Understanding a request does not create authority to execute it.
-        </p>
-
-        <section
-            class="human-ceremony"
-            aria-labelledby="human-ceremony-heading"
-        >
+        <section aria-labelledby="human-ceremony-heading">
             <h2 id="human-ceremony-heading">
-                HUMAN Local Possession Ceremony
+                HUMAN authority ceremony
             </h2>
 
-            <p>
-                This interaction presents a possession challenge issued
-                and verified by protected UCII bootstrap.
-            </p>
-
-            <dl>
-                <dt>Ceremony source</dt>
-                <dd>PROTECTED UCII BOOTSTRAP</dd>
-
-                <dt>Required selection</dt>
-                <dd id="human-ceremony-order">NOT STARTED</dd>
-
-                <dt>Ceremony state</dt>
-                <dd id="human-ceremony-status">NOT STARTED</dd>
-
-                <dt>Selected sequence</dt>
-                <dd id="human-ceremony-selection">NONE</dd>
-            </dl>
+            <p id="human-ceremony-order">NONE</p>
+            <p id="human-ceremony-status">IDLE</p>
+            <p id="human-ceremony-selection">NONE</p>
+            <p id="human-ceremony-targets">NONE</p>
+            <p id="human-ceremony-instruction">NONE</p>
 
             <button id="start-human-ceremony" type="button">
-                Start HUMAN Test
+                Start HUMAN ceremony
             </button>
 
             <button
@@ -153,23 +939,2021 @@
                 type="button"
                 disabled
             >
-                Reset
+                Reset HUMAN ceremony
             </button>
-
-            <div
-                id="human-ceremony-targets"
-                class="human-ceremony-targets"
-                aria-label="HUMAN possession targets"
-            ></div>
-
-            <p id="human-ceremony-instruction">
-                Start the test to request a protected UCII challenge.
-            </p>
         </section>
-    </main>
+    </section>
+
+    <script type="module">
+        import * as THREE from "/three.module.js";
+
+        /*
+         * UCII VOICE AUTHORITY — THREE.JS EARTH
+         *
+         * Presentation only.
+         *
+         * No identity, authentication, authority,
+         * authorization, entitlement, payment or execution
+         * semantics exist in this renderer.
+         */
+
+        (() => {
+            const canvas =
+                document.getElementById(
+                    "authority-earth-canvas"
+                );
+
+            if (canvas === null) {
+                return;
+            }
+
+            const reduceMotion =
+                window.matchMedia(
+                    "(prefers-reduced-motion: reduce)"
+                );
+
+            /*
+             * -------------------------------------------------
+             * RENDERER / CAMERA / SCENE
+             * -------------------------------------------------
+             */
+
+            const renderer =
+                new THREE.WebGLRenderer({
+                    canvas,
+                    alpha: true,
+                    antialias: true,
+                    powerPreference: "high-performance",
+                });
+
+            renderer.setClearColor(0x000000, 0);
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            renderer.toneMapping =
+                THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.34;
+
+            const scene = new THREE.Scene();
+
+            const camera =
+                new THREE.PerspectiveCamera(
+                    32,
+                    1,
+                    0.1,
+                    100,
+                );
+
+            camera.position.set(
+                0,
+                0.04,
+                6.15,
+            );
+
+            /*
+             * Everything associated with the globe lives in
+             * one group. The Earth itself rotates independently
+             * from the orbital-energy system.
+             */
+            const world =
+                new THREE.Group();
+
+            scene.add(world);
+
+            const earthGroup =
+                new THREE.Group();
+
+            earthGroup.rotation.z =
+                THREE.MathUtils.degToRad(-8);
+
+            world.add(earthGroup);
+
+            /*
+             * -------------------------------------------------
+             * EARTH BODY
+             * -------------------------------------------------
+             *
+             * Real sphere geometry plus a custom shader.
+             * The material creates:
+             *
+             * - deep translucent blue-black oceans
+             * - directional day-side illumination
+             * - cyan atmospheric rim
+             * - warm sunrise edge
+             * - subtle internal energy
+             *
+             * No image texture is involved.
+             */
+
+            const earthGeometry =
+                new THREE.SphereGeometry(
+                    1.56,
+                    128,
+                    96,
+                );
+
+            /*
+             * -------------------------------------------------
+             * REAL GEOGRAPHIC EARTH SURFACE
+             * -------------------------------------------------
+             *
+             * Geography comes from the locally hosted Earth
+             * texture. The shader converts that photographic
+             * surface into UCII's transparent glass-Earth
+             * treatment.
+             *
+             * The texture is visual data only. It has no role
+             * in identity, authentication, authority,
+             * authorization or execution.
+             */
+
+            const earthTexture =
+                new THREE.TextureLoader().load(
+                    "/earth-surface-2048.jpg"
+                );
+
+            earthTexture.colorSpace =
+                THREE.SRGBColorSpace;
+
+            earthTexture.anisotropy =
+                Math.min(
+                    8,
+                    renderer.capabilities
+                        .getMaxAnisotropy()
+                );
+
+            const earthMaterial =
+                new THREE.ShaderMaterial({
+                    transparent: true,
+                    depthWrite: false,
+                    depthTest: true,
+                    side: THREE.FrontSide,
+
+                    uniforms: {
+                        uEarth: {
+                            value: earthTexture,
+                        },
+
+                        uLightDirection: {
+                            value:
+                                new THREE.Vector3(
+                                    -0.72,
+                                    0.34,
+                                    0.88,
+                                ).normalize(),
+                        },
+
+                        uTime: {
+                            value: 0,
+                        },
+                    },
+
+                    vertexShader: `
+                        varying vec2 vUv;
+                        varying vec3 vNormalWorld;
+                        varying vec3 vWorldPosition;
+
+                        void main() {
+                            vUv = uv;
+
+                            vec4 worldPosition =
+                                modelMatrix *
+                                vec4(
+                                    position,
+                                    1.0
+                                );
+
+                            vWorldPosition =
+                                worldPosition.xyz;
+
+                            vNormalWorld =
+                                normalize(
+                                    mat3(modelMatrix) *
+                                    normal
+                                );
+
+                            gl_Position =
+                                projectionMatrix *
+                                viewMatrix *
+                                worldPosition;
+                        }
+                    `,
+
+                    fragmentShader: `
+                        precision highp float;
+
+                        uniform sampler2D uEarth;
+                        uniform vec3 uLightDirection;
+                        uniform float uTime;
+
+                        varying vec2 vUv;
+                        varying vec3 vNormalWorld;
+                        varying vec3 vWorldPosition;
+
+                        void main() {
+                            vec4 source =
+                                texture2D(
+                                    uEarth,
+                                    vUv
+                                );
+
+                            vec3 normal =
+                                normalize(
+                                    vNormalWorld
+                                );
+
+                            vec3 viewDirection =
+                                normalize(
+                                    cameraPosition -
+                                    vWorldPosition
+                                );
+
+                            float facing =
+                                clamp(
+                                    dot(
+                                        normal,
+                                        viewDirection
+                                    ),
+                                    0.0,
+                                    1.0
+                                );
+
+                            float fresnel =
+                                pow(
+                                    1.0 - facing,
+                                    2.7
+                                );
+
+                            float lightAmount =
+                                dot(
+                                    normal,
+                                    normalize(
+                                        uLightDirection
+                                    )
+                                );
+
+                            float daylight =
+                                smoothstep(
+                                    -0.32,
+                                    0.72,
+                                    lightAmount
+                                );
+
+                            /*
+                             * Geographic classification.
+                             *
+                             * The source texture contains real
+                             * land/ocean geography. Oceans are
+                             * characteristically blue-dominant;
+                             * land is comparatively red/green
+                             * dominant.
+                             */
+
+                            float blueDominance =
+                                source.b -
+                                max(
+                                    source.r,
+                                    source.g
+                                );
+
+                            float ocean =
+                                smoothstep(
+                                    -0.035,
+                                    0.095,
+                                    blueDominance
+                                );
+
+                            float land =
+                                1.0 - ocean;
+
+                            /*
+                             * Keep oceans genuinely transparent.
+                             * This is what lets the black UCII
+                             * console visually pass through the
+                             * globe instead of producing another
+                             * opaque blue ball.
+                             */
+
+                            float oceanAlpha =
+                                mix(
+                                    0.055,
+                                    0.15,
+                                    daylight
+                                );
+
+                            /*
+                             * Continents remain recognizable,
+                             * but are translucent rather than
+                             * photographic/opaque.
+                             */
+
+                            float landLuma =
+                                dot(
+                                    source.rgb,
+                                    vec3(
+                                        0.299,
+                                        0.587,
+                                        0.114
+                                    )
+                                );
+
+                            float landDetail =
+                                smoothstep(
+                                    0.08,
+                                    0.72,
+                                    landLuma
+                                );
+
+                            float landAlpha =
+                                mix(
+                                    0.48,
+                                    0.76,
+                                    daylight
+                                );
+
+                            landAlpha *=
+                                mix(
+                                    0.76,
+                                    1.0,
+                                    landDetail
+                                );
+
+                            /*
+                             * Deep glass ocean.
+                             */
+
+                            vec3 oceanDark =
+                                vec3(
+                                    0.002,
+                                    0.020,
+                                    0.034
+                                );
+
+                            vec3 oceanLit =
+                                vec3(
+                                    0.008,
+                                    0.105,
+                                    0.175
+                                );
+
+                            vec3 oceanColor =
+                                mix(
+                                    oceanDark,
+                                    oceanLit,
+                                    daylight
+                                );
+
+                            /*
+                             * Real geography tinted into the
+                             * UCII palette rather than rendered
+                             * as a normal satellite photograph.
+                             */
+
+                            vec3 landNight =
+                                vec3(
+                                    0.020,
+                                    0.075,
+                                    0.085
+                                );
+
+                            vec3 landDay =
+                                vec3(
+                                    0.10,
+                                    0.40,
+                                    0.42
+                                );
+
+                            vec3 landColor =
+                                mix(
+                                    landNight,
+                                    landDay,
+                                    daylight
+                                );
+
+                            /*
+                             * Preserve natural source variation
+                             * so coastlines, deserts, forests and
+                             * ice remain visually legible.
+                             */
+
+                            vec3 sourceTint =
+                                source.rgb *
+                                vec3(
+                                    0.36,
+                                    0.78,
+                                    0.88
+                                );
+
+                            landColor +=
+                                sourceTint *
+                                land *
+                                daylight *
+                                0.68;
+
+                            /*
+                             * Polar ice / bright geographic
+                             * features get a cool cyan-white
+                             * response.
+                             */
+
+                            float brightness =
+                                max(
+                                    source.r,
+                                    max(
+                                        source.g,
+                                        source.b
+                                    )
+                                );
+
+                            float ice =
+                                smoothstep(
+                                    0.62,
+                                    0.90,
+                                    brightness
+                                ) *
+                                smoothstep(
+                                    0.55,
+                                    0.86,
+                                    min(
+                                        source.r,
+                                        source.g
+                                    )
+                                );
+
+                            landColor =
+                                mix(
+                                    landColor,
+                                    vec3(
+                                        0.34,
+                                        0.78,
+                                        0.94
+                                    ),
+                                    ice * 0.46
+                                );
+
+                            /*
+                             * Cyan atmospheric rim integrated
+                             * into the surface.
+                             */
+
+                            vec3 cyanGlow =
+                                vec3(
+                                    0.015,
+                                    0.55,
+                                    1.0
+                                );
+
+                            /*
+                             * Warm opposite-limb energy keeps
+                             * the orange/cyan UCII visual
+                             * language without painting the
+                             * entire planet orange.
+                             */
+
+                            float warmSide =
+                                smoothstep(
+                                    -0.10,
+                                    -0.78,
+                                    normal.x
+                                );
+
+                            vec3 orangeGlow =
+                                vec3(
+                                    1.0,
+                                    0.20,
+                                    0.018
+                                );
+
+                            vec3 color =
+                                mix(
+                                    landColor,
+                                    oceanColor,
+                                    ocean
+                                );
+
+                            color +=
+                                cyanGlow *
+                                fresnel *
+                                0.72;
+
+                            color +=
+                                orangeGlow *
+                                fresnel *
+                                warmSide *
+                                0.48;
+
+                            /*
+                             * Very subtle pulse — enough to
+                             * make the atmosphere feel alive,
+                             * never enough to look synthetic.
+                             */
+
+                            float pulse =
+                                0.96 +
+                                0.04 *
+                                sin(
+                                    uTime * 0.65
+                                );
+
+                            color *= pulse;
+
+                            float alpha =
+                                mix(
+                                    landAlpha,
+                                    oceanAlpha,
+                                    ocean
+                                );
+
+                            /*
+                             * Limb remains visible even where
+                             * the interior is highly transparent.
+                             */
+
+                            alpha +=
+                                fresnel * 0.24;
+
+                            alpha =
+                                clamp(
+                                    alpha,
+                                    0.035,
+                                    0.88
+                                );
+
+                            gl_FragColor =
+                                vec4(
+                                    color,
+                                    alpha
+                                );
+                        }
+                    `,
+                });
+
+            const earth =
+                new THREE.Mesh(
+                    earthGeometry,
+                    earthMaterial,
+                );
+
+            earthGroup.add(earth);
+
+            /*
+             * -------------------------------------------------
+             * LATITUDE / LONGITUDE ENERGY GRID
+             * -------------------------------------------------
+             *
+             * These are true 3D curves just above the sphere.
+             * They rotate with Earth and disappear naturally
+             * behind the sphere via the depth buffer.
+             */
+
+            const gridGroup =
+                new THREE.Group();
+
+            earthGroup.add(gridGroup);
+
+            function makeLineMaterial(
+                color,
+                opacity,
+            ) {
+                return new THREE.LineBasicMaterial({
+                    color,
+                    transparent: true,
+                    opacity,
+                    blending:
+                        THREE.AdditiveBlending,
+                    depthWrite: false,
+                    depthTest: true,
+                });
+            }
+
+            const gridBlue =
+                makeLineMaterial(
+                    0x168fd1,
+                    0.018,
+                );
+
+            const gridOrange =
+                makeLineMaterial(
+                    0xff7a12,
+                    0.012,
+                );
+
+            function spherePoint(
+                latitudeDegrees,
+                longitudeDegrees,
+                radius = 1.572,
+            ) {
+                const latitude =
+                    THREE.MathUtils.degToRad(
+                        latitudeDegrees
+                    );
+
+                const longitude =
+                    THREE.MathUtils.degToRad(
+                        longitudeDegrees
+                    );
+
+                const cosLatitude =
+                    Math.cos(latitude);
+
+                return new THREE.Vector3(
+                    radius *
+                        cosLatitude *
+                        Math.cos(longitude),
+                    radius *
+                        Math.sin(latitude),
+                    -radius *
+                        cosLatitude *
+                        Math.sin(longitude),
+                );
+            }
+
+            for (
+                let latitude = -60;
+                latitude <= 60;
+                latitude += 30
+            ) {
+                const points = [];
+
+                for (
+                    let longitude = -180;
+                    longitude <= 180;
+                    longitude += 3
+                ) {
+                    points.push(
+                        spherePoint(
+                            latitude,
+                            longitude,
+                        )
+                    );
+                }
+
+                const geometry =
+                    new THREE.BufferGeometry()
+                        .setFromPoints(points);
+
+                gridGroup.add(
+                    new THREE.Line(
+                        geometry,
+                        latitude === 0
+                            ? gridOrange
+                            : gridBlue,
+                    )
+                );
+            }
+
+            for (
+                let longitude = -150;
+                longitude < 180;
+                longitude += 30
+            ) {
+                const points = [];
+
+                for (
+                    let latitude = -88;
+                    latitude <= 88;
+                    latitude += 2
+                ) {
+                    points.push(
+                        spherePoint(
+                            latitude,
+                            longitude,
+                        )
+                    );
+                }
+
+                const geometry =
+                    new THREE.BufferGeometry()
+                        .setFromPoints(points);
+
+                gridGroup.add(
+                    new THREE.Line(
+                        geometry,
+                        gridBlue,
+                    )
+                );
+            }
+
+            /*
+             * -------------------------------------------------
+             * GEOGRAPHIC ENERGY NODES
+             * -------------------------------------------------
+             *
+             * Real lat/lon locations placed on the actual
+             * rotating sphere.
+             */
+
+            const cities = [
+                [43.65, -79.38],
+                [40.71, -74.01],
+                [37.77, -122.42],
+                [51.51, -0.13],
+                [48.86, 2.35],
+                [52.52, 13.41],
+                [25.20, 55.27],
+                [19.08, 72.88],
+                [1.35, 103.82],
+                [35.68, 139.69],
+                [37.57, 126.98],
+                [-33.87, 151.21],
+                [-23.55, -46.63],
+                [-1.29, 36.82],
+                [6.52, 3.38],
+            ];
+
+            const nodeGeometry =
+                new THREE.SphereGeometry(
+                    0.023,
+                    12,
+                    10,
+                );
+
+            const nodeMaterial =
+                new THREE.MeshBasicMaterial({
+                    color: 0xff9a32,
+                    transparent: true,
+                    opacity: 0.95,
+                    blending:
+                        THREE.AdditiveBlending,
+                    depthWrite: false,
+                    depthTest: true,
+                });
+
+            const nodeGlowMaterial =
+                new THREE.MeshBasicMaterial({
+                    color: 0xff5c00,
+                    transparent: true,
+                    opacity: 0.24,
+                    blending:
+                        THREE.AdditiveBlending,
+                    depthWrite: false,
+                    depthTest: true,
+                });
+
+            const cityMarkers = [];
+
+            for (
+                const [
+                    latitude,
+                    longitude,
+                ] of cities
+            ) {
+                const position =
+                    spherePoint(
+                        latitude,
+                        longitude,
+                        1.588,
+                    );
+
+                const node =
+                    new THREE.Mesh(
+                        nodeGeometry,
+                        nodeMaterial,
+                    );
+
+                node.position.copy(position);
+
+                const glow =
+                    new THREE.Mesh(
+                        new THREE.SphereGeometry(
+                            0.055,
+                            12,
+                            8,
+                        ),
+                        nodeGlowMaterial,
+                    );
+
+                glow.position.copy(position);
+
+                earthGroup.add(glow);
+                earthGroup.add(node);
+
+                cityMarkers.push({
+                    node,
+                    glow,
+                });
+            }
+
+            /*
+             * -------------------------------------------------
+             * BACKGROUND METEOR FIELD
+             * -------------------------------------------------
+             *
+             * Decorative visual energy only.
+             *
+             * Meteors travel through the center visualization
+             * primarily behind the Earth. They are deliberately
+             * independent of identity, authority, authorization,
+             * economics and execution.
+             */
+
+            const meteorGroup =
+                new THREE.Group();
+
+            /*
+             * Keep the field behind the globe while still
+             * allowing tails to remain visible around its limb.
+             */
+            meteorGroup.position.z = -0.82;
+
+            world.add(meteorGroup);
+
+            const meteorPalette = [
+                new THREE.Color(0xff6a00),
+                new THREE.Color(0xff9a32),
+                new THREE.Color(0x19bfff),
+                new THREE.Color(0x63dcff),
+            ];
+
+            /*
+             * Deterministic pseudo-random generator.
+             *
+             * This keeps the visual layout stable between
+             * reloads instead of changing the composition every
+             * time a judge opens the demo.
+             */
+            let meteorSeed = 0x4d455445;
+
+            function meteorRandom() {
+                meteorSeed =
+                    (
+                        meteorSeed *
+                        1664525 +
+                        1013904223
+                    ) >>> 0;
+
+                return (
+                    meteorSeed /
+                    4294967296
+                );
+            }
+
+            const meteorCount = 24;
+            const meteors = [];
+
+            const meteorHeadGeometry =
+                new THREE.SphereGeometry(
+                    0.018,
+                    10,
+                    8,
+                );
+
+            function resetMeteor(
+                meteor,
+                initial = false,
+            ) {
+                const side =
+                    meteorRandom() < 0.5
+                        ? -1
+                        : 1;
+
+                /*
+                 * Spawn outside the visible Earth and travel
+                 * diagonally across the center box.
+                 */
+                meteor.x =
+                    side < 0
+                        ? -2.55 -
+                            meteorRandom() * 1.30
+                        : 2.55 +
+                            meteorRandom() * 1.30;
+
+                meteor.y =
+                    -1.55 +
+                    meteorRandom() * 3.10;
+
+                meteor.z =
+                    -0.72 -
+                    meteorRandom() * 1.05;
+
+                meteor.directionX =
+                    side < 0
+                        ? 1
+                        : -1;
+
+                meteor.directionY =
+                    (
+                        meteorRandom() -
+                        0.50
+                    ) * 0.42;
+
+                meteor.speed =
+                    0.48 +
+                    meteorRandom() * 0.82;
+
+                meteor.tailLength =
+                    0.30 +
+                    meteorRandom() * 0.48;
+
+                meteor.phase =
+                    meteorRandom() *
+                    Math.PI *
+                    2.0;
+
+                if (initial) {
+                    meteor.x =
+                        -3.3 +
+                        meteorRandom() * 6.6;
+                }
+            }
+
+            for (
+                let index = 0;
+                index < meteorCount;
+                index += 1
+            ) {
+                const color =
+                    meteorPalette[
+                        index %
+                        meteorPalette.length
+                    ];
+
+                const headMaterial =
+                    new THREE.MeshBasicMaterial({
+                        color,
+                        transparent: true,
+                        opacity:
+                            0.54 +
+                            meteorRandom() * 0.34,
+                        blending:
+                            THREE.AdditiveBlending,
+                        depthWrite: false,
+                        depthTest: true,
+                    });
+
+                const head =
+                    new THREE.Mesh(
+                        meteorHeadGeometry,
+                        headMaterial,
+                    );
+
+                /*
+                 * Larger translucent halo around the head.
+                 */
+                const halo =
+                    new THREE.Mesh(
+                        new THREE.SphereGeometry(
+                            0.046,
+                            10,
+                            8,
+                        ),
+                        new THREE.MeshBasicMaterial({
+                            color,
+                            transparent: true,
+                            opacity: 0.10,
+                            blending:
+                                THREE.AdditiveBlending,
+                            depthWrite: false,
+                            depthTest: true,
+                        }),
+                    );
+
+                /*
+                 * Tail is a two-point line whose geometry is
+                 * updated each frame.
+                 */
+                const tailGeometry =
+                    new THREE.BufferGeometry();
+
+                const tailPositions =
+                    new Float32Array(6);
+
+                tailGeometry.setAttribute(
+                    'position',
+                    new THREE.BufferAttribute(
+                        tailPositions,
+                        3,
+                    ),
+                );
+
+                const tail =
+                    new THREE.Line(
+                        tailGeometry,
+                        new THREE.LineBasicMaterial({
+                            color,
+                            transparent: true,
+                            opacity:
+                                0.20 +
+                                meteorRandom() * 0.26,
+                            blending:
+                                THREE.AdditiveBlending,
+                            depthWrite: false,
+                            depthTest: true,
+                        }),
+                    );
+
+                const meteor = {
+                    head,
+                    halo,
+                    tail,
+                    x: 0,
+                    y: 0,
+                    z: 0,
+                    directionX: 1,
+                    directionY: 0,
+                    speed: 1,
+                    tailLength: 0.4,
+                    phase: 0,
+                };
+
+                resetMeteor(
+                    meteor,
+                    true,
+                );
+
+                meteorGroup.add(tail);
+                meteorGroup.add(halo);
+                meteorGroup.add(head);
+
+                meteors.push(meteor);
+            }
+
+            function updateMeteors(
+                elapsed,
+                deltaSeconds,
+            ) {
+                for (
+                    const meteor of meteors
+                ) {
+                    meteor.x +=
+                        meteor.directionX *
+                        meteor.speed *
+                        deltaSeconds;
+
+                    meteor.y +=
+                        meteor.directionY *
+                        meteor.speed *
+                        deltaSeconds;
+
+                    /*
+                     * Tiny vertical drift prevents the field
+                     * from looking like straight UI scan lines.
+                     */
+                    const drift =
+                        Math.sin(
+                            elapsed * 0.85 +
+                            meteor.phase
+                        ) * 0.035;
+
+                    const displayY =
+                        meteor.y +
+                        drift;
+
+                    meteor.head.position.set(
+                        meteor.x,
+                        displayY,
+                        meteor.z,
+                    );
+
+                    meteor.halo.position.copy(
+                        meteor.head.position
+                    );
+
+                    /*
+                     * Tail points opposite travel direction.
+                     */
+                    const tailX =
+                        meteor.x -
+                        meteor.directionX *
+                        meteor.tailLength;
+
+                    const tailY =
+                        displayY -
+                        meteor.directionY *
+                        meteor.tailLength;
+
+                    const positions =
+                        meteor.tail.geometry
+                            .attributes.position
+                            .array;
+
+                    positions[0] = meteor.x;
+                    positions[1] = displayY;
+                    positions[2] = meteor.z;
+
+                    positions[3] = tailX;
+                    positions[4] = tailY;
+                    positions[5] = meteor.z;
+
+                    meteor.tail.geometry
+                        .attributes.position
+                        .needsUpdate = true;
+
+                    /*
+                     * Gentle luminance variation produces
+                     * moving energy rather than blinking.
+                     */
+                    meteor.halo.material.opacity =
+                        0.075 +
+                        (
+                            0.045 *
+                            (
+                                0.5 +
+                                0.5 *
+                                Math.sin(
+                                    elapsed * 2.2 +
+                                    meteor.phase
+                                )
+                            )
+                        );
+
+                    /*
+                     * Reset after leaving the center stage.
+                     */
+                    if (
+                        (
+                            meteor.directionX > 0 &&
+                            meteor.x > 3.75
+                        ) ||
+                        (
+                            meteor.directionX < 0 &&
+                            meteor.x < -3.75
+                        ) ||
+                        meteor.y > 2.25 ||
+                        meteor.y < -2.25
+                    ) {
+                        resetMeteor(
+                            meteor,
+                            false,
+                        );
+                    }
+                }
+            }
+
+
+            /*
+             * -------------------------------------------------
+             * ATMOSPHERE SHELL
+             * -------------------------------------------------
+             *
+             * Back-side rendering creates the classic luminous
+             * Fresnel-like atmosphere outside Earth's limb.
+             */
+
+            const atmosphereMaterial =
+                new THREE.ShaderMaterial({
+                    transparent: true,
+                    side: THREE.BackSide,
+                    depthWrite: false,
+                    blending:
+                        THREE.AdditiveBlending,
+
+                    vertexShader: `
+                        varying vec3 vNormalWorld;
+                        varying vec3 vWorldPosition;
+
+                        void main() {
+                            vec4 worldPosition =
+                                modelMatrix *
+                                vec4(position, 1.0);
+
+                            vWorldPosition =
+                                worldPosition.xyz;
+
+                            vNormalWorld =
+                                normalize(
+                                    mat3(modelMatrix) *
+                                    normal
+                                );
+
+                            gl_Position =
+                                projectionMatrix *
+                                viewMatrix *
+                                worldPosition;
+                        }
+                    `,
+
+                    fragmentShader: `
+                        precision highp float;
+
+                        varying vec3 vNormalWorld;
+                        varying vec3 vWorldPosition;
+
+                        void main() {
+                            vec3 normal =
+                                normalize(
+                                    vNormalWorld
+                                );
+
+                            vec3 viewDirection =
+                                normalize(
+                                    cameraPosition -
+                                    vWorldPosition
+                                );
+
+                            float rim =
+                                pow(
+                                    1.0 -
+                                    max(
+                                        dot(
+                                            normal,
+                                            viewDirection
+                                        ),
+                                        0.0
+                                    ),
+                                    2.15
+                                );
+
+                            vec3 cyan =
+                                vec3(
+                                    0.02,
+                                    0.47,
+                                    1.0
+                                );
+
+                            vec3 orange =
+                                vec3(
+                                    1.0,
+                                    0.20,
+                                    0.015
+                                );
+
+                            float side =
+                                smoothstep(
+                                    -0.65,
+                                    0.75,
+                                    normal.x
+                                );
+
+                            vec3 color =
+                                mix(
+                                    orange,
+                                    cyan,
+                                    side
+                                );
+
+                            gl_FragColor =
+                                vec4(
+                                    color *
+                                    rim *
+                                    1.25,
+                                    rim * 0.58
+                                );
+                        }
+                    `,
+                });
+
+            const atmosphere =
+                new THREE.Mesh(
+                    new THREE.SphereGeometry(
+                        1.68,
+                        128,
+                        96,
+                    ),
+                    atmosphereMaterial,
+                );
+
+            world.add(atmosphere);
+
+            /*
+             * Secondary faint shell creates a broader glow
+             * without post-processing or external packages.
+             */
+            const outerAtmosphere =
+                new THREE.Mesh(
+                    new THREE.SphereGeometry(
+                        1.78,
+                        96,
+                        64,
+                    ),
+                    new THREE.ShaderMaterial({
+                        transparent: true,
+                        side: THREE.BackSide,
+                        depthWrite: false,
+                        blending:
+                            THREE.AdditiveBlending,
+
+                        vertexShader: `
+                            varying vec3 vNormalWorld;
+                            varying vec3 vWorldPosition;
+
+                            void main() {
+                                vec4 worldPosition =
+                                    modelMatrix *
+                                    vec4(
+                                        position,
+                                        1.0
+                                    );
+
+                                vWorldPosition =
+                                    worldPosition.xyz;
+
+                                vNormalWorld =
+                                    normalize(
+                                        mat3(
+                                            modelMatrix
+                                        ) *
+                                        normal
+                                    );
+
+                                gl_Position =
+                                    projectionMatrix *
+                                    viewMatrix *
+                                    worldPosition;
+                            }
+                        `,
+
+                        fragmentShader: `
+                            precision highp float;
+
+                            varying vec3 vNormalWorld;
+                            varying vec3 vWorldPosition;
+
+                            void main() {
+                                vec3 viewDirection =
+                                    normalize(
+                                        cameraPosition -
+                                        vWorldPosition
+                                    );
+
+                                float rim =
+                                    pow(
+                                        1.0 -
+                                        max(
+                                            dot(
+                                                normalize(
+                                                    vNormalWorld
+                                                ),
+                                                viewDirection
+                                            ),
+                                            0.0
+                                        ),
+                                        4.4
+                                    );
+
+                                gl_FragColor =
+                                    vec4(
+                                        0.02,
+                                        0.30,
+                                        0.68,
+                                        rim * 0.16
+                                    );
+                            }
+                        `,
+                    }),
+                );
+
+            world.add(outerAtmosphere);
+
+            /*
+             * -------------------------------------------------
+             * TRUE 3D ORBITAL ENERGY
+             * -------------------------------------------------
+             */
+
+            const orbitGroup =
+                new THREE.Group();
+
+            world.add(orbitGroup);
+
+            function createOrbit(
+                color,
+                radiusX,
+                radiusY,
+                tiltX,
+                tiltY,
+                tiltZ,
+                opacity,
+            ) {
+                const curve =
+                    new THREE.EllipseCurve(
+                        0,
+                        0,
+                        radiusX,
+                        radiusY,
+                        0,
+                        Math.PI * 2,
+                        false,
+                        0,
+                    );
+
+                const points2D =
+                    curve.getPoints(220);
+
+                const points3D =
+                    points2D.map(
+                        (point) =>
+                            new THREE.Vector3(
+                                point.x,
+                                point.y,
+                                0,
+                            )
+                    );
+
+                const geometry =
+                    new THREE.BufferGeometry()
+                        .setFromPoints(
+                            points3D
+                        );
+
+                const material =
+                    new THREE.LineBasicMaterial({
+                        color,
+                        transparent: true,
+                        opacity,
+                        blending:
+                            THREE.AdditiveBlending,
+                        depthWrite: false,
+                        depthTest: true,
+                    });
+
+                const line =
+                    new THREE.LineLoop(
+                        geometry,
+                        material,
+                    );
+
+                line.rotation.set(
+                    THREE.MathUtils.degToRad(
+                        tiltX
+                    ),
+                    THREE.MathUtils.degToRad(
+                        tiltY
+                    ),
+                    THREE.MathUtils.degToRad(
+                        tiltZ
+                    ),
+                );
+
+                orbitGroup.add(line);
+
+                return line;
+            }
+
+            const orbitOrangeA =
+                createOrbit(
+                    0xff6a00,
+                    2.00,
+                    0.82,
+                    68,
+                    18,
+                    14,
+                    0.72,
+                );
+
+            const orbitOrangeB =
+                createOrbit(
+                    0xffa12b,
+                    1.91,
+                    0.64,
+                    77,
+                    -28,
+                    -24,
+                    0.46,
+                );
+
+            const orbitBlueA =
+                createOrbit(
+                    0x1aa7ff,
+                    2.05,
+                    0.75,
+                    64,
+                    -20,
+                    -42,
+                    0.66,
+                );
+
+            const orbitBlueB =
+                createOrbit(
+                    0x62d6ff,
+                    1.88,
+                    0.57,
+                    82,
+                    32,
+                    48,
+                    0.38,
+                );
+
+            /*
+             * -------------------------------------------------
+             * ORBITAL PARTICLES
+             * -------------------------------------------------
+             */
+
+            const particleCount = 420;
+
+            const particlePositions =
+                new Float32Array(
+                    particleCount * 3
+                );
+
+            const particleColors =
+                new Float32Array(
+                    particleCount * 3
+                );
+
+            const orange =
+                new THREE.Color(
+                    0xff6b00
+                );
+
+            const blue =
+                new THREE.Color(
+                    0x26aaff
+                );
+
+            for (
+                let index = 0;
+                index < particleCount;
+                index += 1
+            ) {
+                const angle =
+                    (
+                        index /
+                        particleCount
+                    ) *
+                    Math.PI *
+                    2;
+
+                const phase =
+                    Math.sin(
+                        index * 12.9898
+                    ) *
+                    43758.5453;
+
+                const random =
+                    phase -
+                    Math.floor(phase);
+
+                const radius =
+                    1.72 +
+                    random * 0.52;
+
+                const y =
+                    Math.sin(
+                        angle * 2.0 +
+                        random * 3.0
+                    ) *
+                    0.62;
+
+                particlePositions[
+                    index * 3
+                ] =
+                    Math.cos(angle) *
+                    radius;
+
+                particlePositions[
+                    index * 3 + 1
+                ] =
+                    y;
+
+                particlePositions[
+                    index * 3 + 2
+                ] =
+                    Math.sin(angle) *
+                    radius;
+
+                const color =
+                    index % 2 === 0
+                        ? orange
+                        : blue;
+
+                particleColors[
+                    index * 3
+                ] =
+                    color.r;
+
+                particleColors[
+                    index * 3 + 1
+                ] =
+                    color.g;
+
+                particleColors[
+                    index * 3 + 2
+                ] =
+                    color.b;
+            }
+
+            const particleGeometry =
+                new THREE.BufferGeometry();
+
+            particleGeometry.setAttribute(
+                "position",
+                new THREE.BufferAttribute(
+                    particlePositions,
+                    3,
+                ),
+            );
+
+            particleGeometry.setAttribute(
+                "color",
+                new THREE.BufferAttribute(
+                    particleColors,
+                    3,
+                ),
+            );
+
+            const particles =
+                new THREE.Points(
+                    particleGeometry,
+                    new THREE.PointsMaterial({
+                        size: 0.025,
+                        sizeAttenuation: true,
+                        vertexColors: true,
+                        transparent: true,
+                        opacity: 0.70,
+                        blending:
+                            THREE.AdditiveBlending,
+                        depthWrite: false,
+                        depthTest: true,
+                    }),
+                );
+
+            particles.rotation.x =
+                THREE.MathUtils.degToRad(
+                    18
+                );
+
+            // UNIT 4N: geographic lights only.
+            // The 420 orbital particles are not land-anchored.
+            // Keep the particle implementation, but do not
+            // render it over the geographic city markers.
+            particles.visible = false;
+            world.add(particles);
+
+            /*
+             * -------------------------------------------------
+             * RESIZE
+             * -------------------------------------------------
+             */
+
+            let width = 0;
+            let height = 0;
+
+            function resize() {
+                const nextWidth =
+                    Math.max(
+                        1,
+                        Math.round(
+                            canvas.clientWidth
+                        )
+                    );
+
+                const nextHeight =
+                    Math.max(
+                        1,
+                        Math.round(
+                            canvas.clientHeight
+                        )
+                    );
+
+                if (
+                    nextWidth === width &&
+                    nextHeight === height
+                ) {
+                    return;
+                }
+
+                width = nextWidth;
+                height = nextHeight;
+
+                renderer.setPixelRatio(
+                    Math.min(
+                        window.devicePixelRatio ||
+                            1,
+                        2,
+                    )
+                );
+
+                renderer.setSize(
+                    width,
+                    height,
+                    false,
+                );
+
+                camera.aspect =
+                    width / height;
+
+                camera.updateProjectionMatrix();
+            }
+
+            const resizeObserver =
+                new ResizeObserver(
+                    resize
+                );
+
+            resizeObserver.observe(canvas);
+            resize();
+
+            /*
+             * -------------------------------------------------
+             * ANIMATION
+             * -------------------------------------------------
+             */
+
+            /*
+             * -------------------------------------------------
+             * GEOGRAPHIC CITY LIGHT VISIBILITY
+             * -------------------------------------------------
+             *
+             * Only illuminate markers on the camera-facing
+             * hemisphere. The markers retain their actual
+             * geographic positions while Earth rotates.
+             */
+
+            const cityWorldPosition =
+                new THREE.Vector3();
+
+            const earthWorldCenter =
+                new THREE.Vector3();
+
+            const cityCameraDirection =
+                new THREE.Vector3();
+
+            // UNIT 4M: subtle orbital geometry.
+            // Preserve the existing colors and trajectories.
+            orbitGroup.traverse((object) => {
+                if (
+                    object.material &&
+                    typeof object.material.opacity === "number"
+                ) {
+                    object.material.opacity *= 0.22;
+                }
+            });
+
+            function updateCityMarkerVisibility() {
+                earthGroup.updateMatrixWorld(true);
+
+                earthGroup.getWorldPosition(
+                    earthWorldCenter
+                );
+
+                cityCameraDirection
+                    .copy(camera.position)
+                    .sub(earthWorldCenter)
+                    .normalize();
+
+                for (const marker of cityMarkers) {
+                    marker.node.getWorldPosition(
+                        cityWorldPosition
+                    );
+
+                    const facing =
+                        cityWorldPosition
+                            .sub(earthWorldCenter)
+                            .normalize()
+                            .dot(cityCameraDirection);
+
+                    /*
+                     * The small positive threshold prevents
+                     * lights from popping through the limb.
+                     */
+                    const visible =
+                        facing > 0.10;
+
+                    marker.node.visible = visible;
+                    marker.glow.visible = visible;
+                }
+            }
+
+            const clock =
+                new THREE.Clock();
+
+            let previousElapsed = 0;
+
+            function render() {
+                resize();
+
+                const elapsed =
+                    clock.getElapsedTime();
+
+                const deltaSeconds =
+                    Math.min(
+                        0.05,
+                        Math.max(
+                            0.0,
+                            elapsed -
+                            previousElapsed
+                        )
+                    );
+
+                previousElapsed =
+                    elapsed;
+
+                earthMaterial.uniforms
+                    .uTime.value =
+                    elapsed;
+
+                if (!reduceMotion.matches) {
+                    earthGroup.rotation.y =
+                        elapsed * 0.1575;
+
+                    updateCityMarkerVisibility();
+
+                    updateMeteors(
+                        elapsed,
+                        deltaSeconds,
+                    );
+
+                    orbitGroup.rotation.y =
+                        elapsed * 0.055;
+
+                    orbitGroup.rotation.z =
+                        Math.sin(
+                            elapsed * 0.18
+                        ) * 0.06;
+
+                    orbitOrangeA.rotation.z +=
+                        0.00055;
+
+                    orbitOrangeB.rotation.z -=
+                        0.00038;
+
+                    orbitBlueA.rotation.z -=
+                        0.00047;
+
+                    orbitBlueB.rotation.z +=
+                        0.00031;
+
+                    particles.rotation.y =
+                        elapsed * 0.035;
+
+                    particles.rotation.z =
+                        elapsed * -0.018;
+                }
+
+                renderer.render(
+                    scene,
+                    camera,
+                );
+
+                requestAnimationFrame(
+                    render
+                );
+            }
+
+            render();
+        })();
+    </script>
 
     <script>
         "use strict";
+
+
+        /*
+         * CODE-RENDERED ROTATING EARTH
+         *
+         * Presentation only.
+         *
+         * This renderer has no authority, authentication,
+         * authorization, entitlement, payment or execution role.
+         *
+         * Geometry is longitude/latitude data projected onto a
+         * rotating orthographic sphere. No image/texture asset is
+         * used by the renderer.
+         */
+        /*
+         * CENTER EARTH
+         *
+         * The previous Canvas-2D Earth renderer was removed.
+         * The center visualization is now owned exclusively by
+         * the isolated Three.js module below.
+         *
+         * Presentation only. It has no identity, authentication,
+         * authority, authorization, payment or execution role.
+         */
+
+        const overlayCalibration = (() => {
+            const nativeWidth = 1672;
+            const nativeHeight = 941;
+
+            const stage =
+                document.getElementById(
+                    "voice-authority-stage"
+                );
+            const layer =
+                document.getElementById(
+                    "calibration-layer"
+                );
+            const crosshairX =
+                document.getElementById(
+                    "calibration-crosshair-x"
+                );
+            const crosshairY =
+                document.getElementById(
+                    "calibration-crosshair-y"
+                );
+            const readout =
+                document.getElementById(
+                    "calibration-readout"
+                );
+
+            if (
+                stage === null ||
+                layer === null ||
+                crosshairX === null ||
+                crosshairY === null ||
+                readout === null
+            ) {
+                return null;
+            }
+
+            let enabled = false;
+
+            function setEnabled(nextEnabled) {
+                enabled = nextEnabled;
+
+                stage.classList.toggle(
+                    "calibration-enabled",
+                    enabled,
+                );
+
+                if (!enabled) {
+                    crosshairX.style.display = "none";
+                    crosshairY.style.display = "none";
+                }
+            }
+
+            function nativePoint(event) {
+                const rect =
+                    stage.getBoundingClientRect();
+
+                const x = Math.max(
+                    0,
+                    Math.min(
+                        nativeWidth,
+                        (
+                            (event.clientX - rect.left) /
+                            rect.width
+                        ) * nativeWidth,
+                    ),
+                );
+
+                const y = Math.max(
+                    0,
+                    Math.min(
+                        nativeHeight,
+                        (
+                            (event.clientY - rect.top) /
+                            rect.height
+                        ) * nativeHeight,
+                    ),
+                );
+
+                return {
+                    x,
+                    y,
+                    left:
+                        ((event.clientX - rect.left) /
+                            rect.width) *
+                        100,
+                    top:
+                        ((event.clientY - rect.top) /
+                            rect.height) *
+                        100,
+                };
+            }
+
+            stage.addEventListener(
+                "pointermove",
+                (event) => {
+                    if (!enabled) {
+                        return;
+                    }
+
+                    const point =
+                        nativePoint(event);
+
+                    crosshairX.style.display = "block";
+                    crosshairY.style.display = "block";
+
+                    crosshairX.style.top =
+                        `${point.top}%`;
+                    crosshairY.style.left =
+                        `${point.left}%`;
+
+                    readout.innerHTML =
+                        "NATIVE 1672 × 941<br>" +
+                        "<strong>" +
+                        `X ${Math.round(point.x)} / ` +
+                        `Y ${Math.round(point.y)}` +
+                        "</strong><br>" +
+                        "G = toggle grid";
+                },
+            );
+
+            stage.addEventListener(
+                "pointerleave",
+                () => {
+                    crosshairX.style.display = "none";
+                    crosshairY.style.display = "none";
+                },
+            );
+
+            window.addEventListener(
+                "keydown",
+                (event) => {
+                    if (
+                        event.key === "g" ||
+                        event.key === "G"
+                    ) {
+                        setEnabled(!enabled);
+                    }
+                },
+            );
+
+            return {
+                setEnabled,
+            };
+        })();
 
         const microphoneStatus =
             document.getElementById("microphone-status");
@@ -851,6 +3635,582 @@
             });
         }
 
+        /*
+         * Real microphone visualization.
+         *
+         * The samples rendered here are the same Float32 microphone
+         * samples entering captureMicrophonePcm16(). No synthetic
+         * animation is used for the waveform.
+         */
+        const liveVoiceSurface =
+            document.getElementById("live-voice-surface");
+        const liveVoiceCanvas =
+            document.getElementById("live-voice-waveform");
+        const liveVoiceStateText =
+            document.getElementById("live-voice-state-text");
+        const liveVoiceTranscript =
+            document.getElementById("live-voice-transcript");
+        const liveVoiceElapsed =
+            document.getElementById("live-voice-elapsed");
+
+        let liveVoiceStartedAt = null;
+        let liveVoiceElapsedTimer = null;
+        let liveVoicePeak = 0;
+
+        function formatLiveVoiceElapsed(milliseconds) {
+            const totalSeconds =
+                Math.max(0, Math.floor(milliseconds / 1000));
+            const minutes =
+                Math.floor(totalSeconds / 60);
+            const seconds =
+                totalSeconds % 60;
+
+            return (
+                String(minutes).padStart(2, "0") +
+                ":" +
+                String(seconds).padStart(2, "0")
+            );
+        }
+
+        function updateLiveVoiceElapsed() {
+            if (
+                liveVoiceStartedAt === null ||
+                liveVoiceElapsed === null
+            ) {
+                return;
+            }
+
+            liveVoiceElapsed.textContent =
+                formatLiveVoiceElapsed(
+                    performance.now() - liveVoiceStartedAt,
+                );
+        }
+
+        function setLiveVoiceRunning(running) {
+            if (
+                liveVoiceSurface === null ||
+                liveVoiceStateText === null
+            ) {
+                return;
+            }
+
+            liveVoiceSurface.classList.toggle(
+                "is-live",
+                running,
+            );
+
+            liveVoiceStateText.textContent =
+                running ? "LIVE" : "IDLE";
+
+            if (running) {
+                if (liveVoiceStartedAt === null) {
+                    liveVoiceStartedAt =
+                        performance.now();
+                }
+
+                if (liveVoiceElapsedTimer === null) {
+                    liveVoiceElapsedTimer =
+                        window.setInterval(
+                            updateLiveVoiceElapsed,
+                            250,
+                        );
+                }
+
+                updateLiveVoiceElapsed();
+                return;
+            }
+
+            if (liveVoiceElapsedTimer !== null) {
+                window.clearInterval(
+                    liveVoiceElapsedTimer,
+                );
+                liveVoiceElapsedTimer = null;
+            }
+
+            liveVoiceStartedAt = null;
+
+            if (liveVoiceElapsed !== null) {
+                liveVoiceElapsed.textContent = "00:00";
+            }
+
+            drawLiveVoiceWaveform(
+                new Float32Array(0),
+            );
+        }
+
+        function drawLiveVoiceWaveform(samples) {
+            if (liveVoiceCanvas === null) {
+                return;
+            }
+
+            const rect =
+                liveVoiceCanvas.getBoundingClientRect();
+
+            if (
+                rect.width <= 0 ||
+                rect.height <= 0
+            ) {
+                return;
+            }
+
+            const deviceScale =
+                Math.max(
+                    1,
+                    Math.min(
+                        2,
+                        window.devicePixelRatio || 1,
+                    ),
+                );
+
+            const width =
+                Math.max(
+                    1,
+                    Math.round(
+                        rect.width * deviceScale,
+                    ),
+                );
+
+            const height =
+                Math.max(
+                    1,
+                    Math.round(
+                        rect.height * deviceScale,
+                    ),
+                );
+
+            if (
+                liveVoiceCanvas.width !== width ||
+                liveVoiceCanvas.height !== height
+            ) {
+                liveVoiceCanvas.width = width;
+                liveVoiceCanvas.height = height;
+            }
+
+            const context =
+                liveVoiceCanvas.getContext("2d");
+
+            if (context === null) {
+                return;
+            }
+
+            context.clearRect(
+                0,
+                0,
+                width,
+                height,
+            );
+
+            const centerY = height / 2;
+
+            /*
+             * Subtle center reference only.
+             */
+            const baseline =
+                context.createLinearGradient(
+                    0,
+                    0,
+                    width,
+                    0,
+                );
+
+            baseline.addColorStop(
+                0,
+                "rgba(255, 122, 20, 0.015)",
+            );
+
+            baseline.addColorStop(
+                0.5,
+                "rgba(255, 145, 34, 0.11)",
+            );
+
+            baseline.addColorStop(
+                1,
+                "rgba(255, 122, 20, 0.015)",
+            );
+
+            context.strokeStyle = baseline;
+            context.lineWidth =
+                Math.max(
+                    1,
+                    0.55 * deviceScale,
+                );
+
+            context.beginPath();
+            context.moveTo(0, centerY);
+            context.lineTo(width, centerY);
+            context.stroke();
+
+            if (
+                !(samples instanceof Float32Array) ||
+                samples.length < 2
+            ) {
+                liveVoicePeak *= 0.80;
+                return;
+            }
+
+            /*
+             * Determine the real peak of this microphone
+             * buffer. This is used only to choose a stable
+             * DISPLAY gain. Audio itself is never modified.
+             */
+            let bufferPeak = 0;
+
+            for (
+                let index = 0;
+                index < samples.length;
+                index += 1
+            ) {
+                bufferPeak =
+                    Math.max(
+                        bufferPeak,
+                        Math.abs(samples[index]),
+                    );
+            }
+
+            liveVoicePeak =
+                Math.max(
+                    bufferPeak,
+                    liveVoicePeak * 0.82,
+                );
+
+            const visualGain =
+                Math.min(
+                    6.5,
+                    Math.max(
+                        1.0,
+                        0.72 /
+                            Math.max(
+                                liveVoicePeak,
+                                0.11,
+                            ),
+                    ),
+                );
+
+            /*
+             * These are visual bars, but every bar derives
+             * from a real chronological slice of the current
+             * Float32 microphone buffer.
+             */
+            const barCount =
+                Math.max(
+                    72,
+                    Math.min(
+                        104,
+                        Math.floor(
+                            rect.width / 4.8,
+                        ),
+                    ),
+                );
+
+            const slotWidth =
+                width / barCount;
+
+            const barWidth =
+                Math.max(
+                    1.25 * deviceScale,
+                    slotWidth * 0.34,
+                );
+
+            const samplesPerBar =
+                samples.length / barCount;
+
+            const maximumHalfHeight =
+                height * 0.43;
+
+            /*
+             * Draw from real per-slice peak + RMS energy.
+             *
+             * Peak preserves consonants/transients.
+             * RMS prevents isolated samples from making
+             * visually absurd spikes.
+             */
+            const amplitudes = [];
+
+            for (
+                let barIndex = 0;
+                barIndex < barCount;
+                barIndex += 1
+            ) {
+                const first =
+                    Math.floor(
+                        barIndex *
+                        samplesPerBar,
+                    );
+
+                const last =
+                    Math.max(
+                        first + 1,
+                        Math.min(
+                            samples.length,
+                            Math.floor(
+                                (barIndex + 1) *
+                                samplesPerBar,
+                            ),
+                        ),
+                    );
+
+                let peak = 0;
+                let sumSquares = 0;
+                let count = 0;
+
+                for (
+                    let sampleIndex = first;
+                    sampleIndex < last;
+                    sampleIndex += 1
+                ) {
+                    const value =
+                        Math.abs(
+                            samples[sampleIndex],
+                        );
+
+                    peak =
+                        Math.max(
+                            peak,
+                            value,
+                        );
+
+                    sumSquares +=
+                        value * value;
+
+                    count += 1;
+                }
+
+                const rms =
+                    count > 0
+                        ? Math.sqrt(
+                            sumSquares / count,
+                        )
+                        : 0;
+
+                /*
+                 * Weighted real signal envelope:
+                 * 65% RMS body + 35% transient peak.
+                 */
+                let amplitude =
+                    (
+                        rms * 0.65 +
+                        peak * 0.35
+                    ) *
+                    visualGain;
+
+                /*
+                 * Silence should actually look quiet.
+                 */
+                if (amplitude < 0.012) {
+                    amplitude = 0;
+                }
+
+                amplitude =
+                    Math.min(
+                        1,
+                        amplitude,
+                    );
+
+                amplitudes.push(amplitude);
+            }
+
+            /*
+             * Very small neighboring-bar smoothing.
+             *
+             * This changes presentation only. It avoids a
+             * noisy comb appearance while preserving the
+             * real speech envelope.
+             */
+            const smoothed = [];
+
+            for (
+                let index = 0;
+                index < amplitudes.length;
+                index += 1
+            ) {
+                const previous =
+                    amplitudes[
+                        Math.max(
+                            0,
+                            index - 1,
+                        )
+                    ];
+
+                const current =
+                    amplitudes[index];
+
+                const next =
+                    amplitudes[
+                        Math.min(
+                            amplitudes.length - 1,
+                            index + 1,
+                        )
+                    ];
+
+                smoothed.push(
+                    previous * 0.20 +
+                    current * 0.60 +
+                    next * 0.20,
+                );
+            }
+
+            const orangeGradient =
+                context.createLinearGradient(
+                    0,
+                    0,
+                    width,
+                    0,
+                );
+
+            orangeGradient.addColorStop(
+                0,
+                "rgba(255, 88, 13, 0.72)",
+            );
+
+            orangeGradient.addColorStop(
+                0.32,
+                "rgba(255, 125, 20, 0.94)",
+            );
+
+            orangeGradient.addColorStop(
+                0.58,
+                "rgba(255, 172, 47, 1)",
+            );
+
+            orangeGradient.addColorStop(
+                0.78,
+                "rgba(255, 132, 25, 0.96)",
+            );
+
+            orangeGradient.addColorStop(
+                1,
+                "rgba(255, 91, 14, 0.74)",
+            );
+
+            context.fillStyle =
+                orangeGradient;
+
+            context.shadowColor =
+                "rgba(255, 112, 18, 0.58)";
+
+            context.shadowBlur =
+                Math.max(
+                    1.5,
+                    2.0 * deviceScale,
+                );
+
+            for (
+                let index = 0;
+                index < smoothed.length;
+                index += 1
+            ) {
+                const amplitude =
+                    smoothed[index];
+
+                /*
+                 * Silence gets a tiny center dash.
+                 * Speech grows symmetrically above/below it.
+                 */
+                const halfHeight =
+                    amplitude === 0
+                        ? 0.75 * deviceScale
+                        : Math.max(
+                            1.2 * deviceScale,
+                            amplitude *
+                                maximumHalfHeight,
+                        );
+
+                const fullHeight =
+                    halfHeight * 2;
+
+                const x =
+                    index *
+                    slotWidth +
+                    (
+                        slotWidth -
+                        barWidth
+                    ) /
+                    2;
+
+                const y =
+                    centerY -
+                    halfHeight;
+
+                const radius =
+                    Math.min(
+                        barWidth / 2,
+                        1.8 * deviceScale,
+                    );
+
+                context.beginPath();
+
+                if (
+                    typeof context.roundRect ===
+                    "function"
+                ) {
+                    context.roundRect(
+                        x,
+                        y,
+                        barWidth,
+                        fullHeight,
+                        radius,
+                    );
+                } else {
+                    context.rect(
+                        x,
+                        y,
+                        barWidth,
+                        fullHeight,
+                    );
+                }
+
+                context.fill();
+            }
+
+            context.shadowBlur = 0;
+        }
+
+        function updateLiveVoiceTranscript() {
+            if (liveVoiceTranscript === null) {
+                return;
+            }
+
+            const finalized =
+                finalizedTurn !== null
+                    ? finalizedTurn.textContent.trim()
+                    : "";
+
+            const partial =
+                partialTurn !== null
+                    ? partialTurn.textContent.trim()
+                    : "";
+
+            let value = "";
+
+            if (
+                partial.length > 0 &&
+                partial !== "NONE"
+            ) {
+                value = partial;
+            } else if (
+                finalized.length > 0 &&
+                finalized !== "NONE"
+            ) {
+                value = finalized;
+            }
+
+            if (value.length === 0) {
+                liveVoiceTranscript.textContent =
+                    "Listening for your voice…";
+                liveVoiceTranscript.classList.add(
+                    "idle",
+                );
+                return;
+            }
+
+            liveVoiceTranscript.textContent =
+                `“${value}”`;
+
+            liveVoiceTranscript.classList.remove(
+                "idle",
+            );
+        }
+
         function float32ToPcm16(samples) {
             const pcm16 = new Int16Array(samples.length);
 
@@ -957,6 +4317,8 @@
         }
 
         function captureMicrophonePcm16(samples, sourceSampleRate) {
+            drawLiveVoiceWaveform(samples);
+
             const resampled =
                 resampleToAssemblyAIRate(samples, sourceSampleRate);
 
@@ -1038,6 +4400,8 @@
         }
 
         async function stopMicrophone() {
+            setLiveVoiceRunning(false);
+            setLiveBottomVoiceRunning(false);
             await stopMicrophoneAudioPipeline();
 
             if (microphoneStream !== null) {
@@ -1087,6 +4451,8 @@
                                 startMicrophoneButton.disabled = false;
                                 stopMicrophoneButton.disabled = true;
                                 setMicrophoneState("STOPPED");
+                                setLiveVoiceRunning(false);
+                                setLiveBottomVoiceRunning(false);
                             }
                         },
                         { once: true },
@@ -1095,7 +4461,12 @@
 
                 stopMicrophoneButton.disabled = false;
                 setMicrophoneState("LISTENING");
+                setLiveVoiceRunning(true);
+                setLiveBottomVoiceRunning(true);
             } catch (error) {
+                setLiveVoiceRunning(false);
+                setLiveBottomVoiceRunning(false);
+
                 if (microphoneStream !== null) {
                     for (const track of microphoneStream.getTracks()) {
                         track.stop();
@@ -1127,6 +4498,112 @@
                 }
             }
         }
+
+        const liveVoiceTranscriptObserver =
+            new MutationObserver(
+                updateLiveVoiceTranscript,
+            );
+
+        if (partialTurn !== null) {
+            liveVoiceTranscriptObserver.observe(
+                partialTurn,
+                {
+                    childList: true,
+                    characterData: true,
+                    subtree: true,
+                },
+            );
+        }
+
+        if (finalizedTurn !== null) {
+            liveVoiceTranscriptObserver.observe(
+                finalizedTurn,
+                {
+                    childList: true,
+                    characterData: true,
+                    subtree: true,
+                },
+            );
+        }
+
+        drawLiveVoiceWaveform(
+            new Float32Array(0),
+        );
+        updateLiveVoiceTranscript();
+
+        const liveBottomVoiceControl =
+            document.getElementById(
+                "live-bottom-voice-control"
+            );
+        const liveBottomMicButton =
+            document.getElementById(
+                "live-bottom-mic-button"
+            );
+        const liveBottomVoicePrimary =
+            document.getElementById(
+                "live-bottom-voice-primary"
+            );
+
+        function setLiveBottomVoiceRunning(running) {
+            if (
+                liveBottomVoiceControl === null ||
+                liveBottomMicButton === null ||
+                liveBottomVoicePrimary === null
+            ) {
+                return;
+            }
+
+            liveBottomVoiceControl.classList.toggle(
+                "is-live",
+                running,
+            );
+
+            liveBottomMicButton.setAttribute(
+                "aria-pressed",
+                running ? "true" : "false",
+            );
+
+            liveBottomMicButton.setAttribute(
+                "aria-label",
+                running
+                    ? "Stop microphone"
+                    : "Start microphone",
+            );
+
+            liveBottomVoicePrimary.textContent =
+                running
+                    ? "Listening — tap to stop"
+                    : "Tap to speak or hold...";
+        }
+
+        if (liveBottomMicButton !== null) {
+            liveBottomMicButton.addEventListener(
+                "click",
+                async () => {
+                    if (microphoneStream !== null) {
+                        liveBottomMicButton.disabled = true;
+
+                        try {
+                            await stopMicrophone();
+                        } finally {
+                            liveBottomMicButton.disabled = false;
+                        }
+
+                        return;
+                    }
+
+                    liveBottomMicButton.disabled = true;
+
+                    try {
+                        await startMicrophone();
+                    } finally {
+                        liveBottomMicButton.disabled = false;
+                    }
+                },
+            );
+        }
+
+        setLiveBottomVoiceRunning(false);
 
         startMicrophoneButton.addEventListener(
             "click",
