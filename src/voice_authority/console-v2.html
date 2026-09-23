@@ -525,10 +525,126 @@ async function checkAuthority(){
 checkBackend();void Promise.all([checkAccess(),checkAuthority()]);$("earth").addEventListener("error",()=>{$("earth").style.display="none";evidence("Local Earth asset unavailable; serve this page from the Voice Authority app.")});
 function showTranscript(){set("live",partial||lastFinal||"Listening for your voice…")}
 function send(obj){if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringify(obj))}
-const sessionPrompt="You are the conversational interface for UCII Voice Authority. Voice interpretation is not authorization. When the user explicitly requests a purchase of compute units, call propose_compute_purchase with quantity and unit compute. The tool proposes only; it cannot authorize or execute. Keep replies brief.";
+const sessionPrompt="When the user asks to inspect compute authority, call propose_compute_inspect with empty arguments. Inspection does not grant authority or execute anything. You are the conversational interface for UCII Voice Authority. Voice interpretation is not authorization. When the user explicitly requests a purchase of compute units, call propose_compute_purchase with quantity and unit compute. The tool proposes only; it cannot authorize or execute. Keep replies brief.";
+const inspectTool={type:"function",name:"propose_compute_inspect",description:"Propose read-only inspection of compute authority. Does not grant authority or execute anything.",parameters:{type:"object",properties:{},required:[],additionalProperties:false}};
 const tool={type:"function",name:"propose_compute_purchase",description:"Propose a bounded compute purchase; does not authorize or execute.",parameters:{type:"object",properties:{quantity:{type:"integer",minimum:1},unit:{type:"string",enum:["compute"]}},required:["quantity","unit"],additionalProperties:false}};
-async function connect(){if(socket)return;$("connect").disabled=true;set("connection","REQUESTING TOKEN");try{const r=await fetch("/assemblyai/token",{cache:"no-store"});if(!r.ok)throw Error("Token endpoint unavailable (HTTP "+r.status+")");const {token}=await r.json();if(typeof token!=="string"||!token)throw Error("Invalid token response");const ws=new WebSocket("wss://agents.assemblyai.com/v1/ws?token="+encodeURIComponent(token));socket=ws;ws.addEventListener("open",()=>{if(socket!==ws)return;event("socket.open");send({type:"session.update",session:{system_prompt:sessionPrompt,tools:[tool]}})});ws.addEventListener("message",e=>{if(socket!==ws)return;let m;try{m=JSON.parse(e.data)}catch{return}if(typeof m.type!=="string")return;if(m.type!=="reply.audio")event(m.type);if(m.type==="session.ready"){if(typeof m.session_id!=="string"||!m.session_id){evidence("Invalid session.ready; disconnecting");void disconnect();return}sessionId=m.session_id;set("connection","READY");refresh()}else if(m.type==="input.speech.started"){lastProposal=null;refreshDemo();evidence("VOICE DIAGNOSTIC: new speech turn; previous proposal invalidated");set("speech","STARTED");set("speech-hero","LISTENING")}else if(m.type==="input.speech.stopped"){set("speech","STOPPED");set("speech-hero","IDLE")}else if(m.type==="transcript.user.delta"){partial=typeof m.text==="string"?m.text:typeof m.delta==="string"?m.delta:"";showTranscript()}else if(m.type==="transcript.user"){if(typeof m.text==="string"&&m.text.trim()){lastFinal=m.text;partial="";evidence("VOICE DIAGNOSTIC: final transcript received; characters="+m.text.length);turnId=typeof m.item_id==="string"?m.item_id:null;showTranscript();$("history").textContent+="["+new Date().toLocaleTimeString()+"] "+lastFinal+"\n"}}else if(m.type==="transcript.agent"){if(typeof m.text==="string")set("agent",m.text)}else if(m.type==="tool.call"){void validateProposal(m)}else if(m.type==="session.error"){evidence("AssemblyAI session error (details not displayed)")}});ws.addEventListener("close",()=>{if(socket!==ws)return;socket=null;sessionId=null;turnId=null;void stopMic();refresh();event("socket.closed")});ws.addEventListener("error",()=>{evidence("AssemblyAI WebSocket error")});refresh()}catch(e){socket=null;sessionId=null;turnId=null;refresh();set("connection","FAILED");evidence(e.message||"Connection failed")}}
-async function validateProposal(m){if(!sessionId||!turnId){evidence("VOICE DIAGNOSTIC: tool call received before session/turn reference; rejected");return}if(typeof m.name!=="string"||!m.arguments||typeof m.arguments!=="object"||Array.isArray(m.arguments))return;try{const r=await fetch("/proposals/assemblyai-tool",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_id:sessionId,source_turn_reference:turnId,tool_name:m.name,arguments:m.arguments})});if(!r.ok){evidence("Tool proposal rejected by validator");return}const p=await r.json();if(p.operation!=="EXECUTE"||p.consequence_class!=="CONSEQUENTIAL"||p.session_id!==sessionId||p.source_turn_reference!==turnId||p.requested_scope?.operation!=="compute.purchase"||!Number.isInteger(p.requested_parameters?.quantity)||p.requested_parameters.quantity<1||p.requested_parameters.unit!=="compute")return;lastProposal=p;refreshDemo();set("proposal","VALIDATED PROPOSAL\nOperation: compute.purchase\nQuantity: "+p.requested_parameters.quantity+"\nAuthorization: NOT PERFORMED");evidence("Structured compute.purchase proposal validated. No authorization or execution occurred.")}catch{evidence("Proposal validation endpoint unavailable")}}
+async function connect(){if(socket)return;$("connect").disabled=true;set("connection","REQUESTING TOKEN");try{const r=await fetch("/assemblyai/token",{cache:"no-store"});if(!r.ok)throw Error("Token endpoint unavailable (HTTP "+r.status+")");const {token}=await r.json();if(typeof token!=="string"||!token)throw Error("Invalid token response");const ws=new WebSocket("wss://agents.assemblyai.com/v1/ws?token="+encodeURIComponent(token));socket=ws;ws.addEventListener("open",()=>{if(socket!==ws)return;event("socket.open");send({type:"session.update",session:{system_prompt:sessionPrompt,tools:[inspectTool,tool]}})});ws.addEventListener("message",e=>{if(socket!==ws)return;let m;try{m=JSON.parse(e.data)}catch{return}if(typeof m.type!=="string")return;if(m.type!=="reply.audio")event(m.type);if(m.type==="session.ready"){if(typeof m.session_id!=="string"||!m.session_id){evidence("Invalid session.ready; disconnecting");void disconnect();return}sessionId=m.session_id;set("connection","READY");refresh()}else if(m.type==="input.speech.started"){lastProposal=null;refreshDemo();evidence("VOICE DIAGNOSTIC: new speech turn; previous proposal invalidated");set("speech","STARTED");set("speech-hero","LISTENING")}else if(m.type==="input.speech.stopped"){set("speech","STOPPED");set("speech-hero","IDLE")}else if(m.type==="transcript.user.delta"){partial=typeof m.text==="string"?m.text:typeof m.delta==="string"?m.delta:"";showTranscript()}else if(m.type==="transcript.user"){if(typeof m.text==="string"&&m.text.trim()){lastFinal=m.text;partial="";evidence("VOICE DIAGNOSTIC: final transcript received; characters="+m.text.length);turnId=typeof m.item_id==="string"?m.item_id:null;showTranscript();$("history").textContent+="["+new Date().toLocaleTimeString()+"] "+lastFinal+"\n"}}else if(m.type==="transcript.agent"){if(typeof m.text==="string")set("agent",m.text)}else if(m.type==="tool.call"){void validateProposal(m)}else if(m.type==="session.error"){evidence("AssemblyAI session error (details not displayed)")}});ws.addEventListener("close",()=>{if(socket!==ws)return;socket=null;sessionId=null;turnId=null;void stopMic();refresh();event("socket.closed")});ws.addEventListener("error",()=>{evidence("AssemblyAI WebSocket error")});refresh()}catch(e){socket=null;sessionId=null;turnId=null;refresh();set("connection","FAILED");evidence(e.message||"Connection failed")}}
+
+async function validateProposal(m){
+  if(!sessionId||!turnId){
+    evidence("VOICE DIAGNOSTIC: tool call missing session/turn reference");
+    return;
+  }
+  if(typeof m.name!=="string"||
+     !m.arguments||
+     typeof m.arguments!=="object"||
+     Array.isArray(m.arguments))return;
+
+  const expectedSession=sessionId;
+  const expectedTurn=turnId;
+
+  try{
+    const r=await fetch("/proposals/assemblyai-tool",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        session_id:expectedSession,
+        source_turn_reference:expectedTurn,
+        tool_name:m.name,
+        arguments:m.arguments
+      })
+    });
+
+    if(!r.ok){
+      evidence("Tool proposal rejected by validator");
+      return;
+    }
+
+    const p=await r.json();
+
+    if(sessionId!==expectedSession||
+       turnId!==expectedTurn||
+       p.session_id!==expectedSession||
+       p.source_turn_reference!==expectedTurn)return;
+
+    if(m.name==="propose_compute_inspect"&&
+       p.operation==="INSPECT"&&
+       p.consequence_class==="LOW"&&
+       p.requested_scope?.operation==="compute.inspect"&&
+       p.requested_parameters&&
+       typeof p.requested_parameters==="object"&&
+       !Array.isArray(p.requested_parameters)&&
+       Object.keys(p.requested_parameters).length===0){
+
+      set("proposal",
+          "VALIDATED PROPOSAL\nOperation: compute.inspect\n"
+          +"Consequence: LOW\nChecking live UCII authority...");
+
+      evidence("Structured compute.inspect proposal validated. "
+               +"No authority granted or execution performed.");
+
+      try{
+        const check=await fetch(
+          "/ucii/delegated/check?operation=compute.inspect",
+          {method:"POST",cache:"no-store"}
+        );
+        const result=await check.json();
+
+        if(sessionId!==expectedSession||
+           turnId!==expectedTurn)return;
+
+        const consistent=
+          result.operation==="compute.inspect"&&
+          ((result.status==="AUTHORIZED"&&
+            result.authorized===true)||
+           (result.status==="DENIED"&&
+            result.authorized===false));
+
+        if(check.ok&&consistent){
+          set("proposal",
+              "VALIDATED PROPOSAL\nOperation: compute.inspect\n"
+              +"Consequence: LOW\nUCII authority: "+result.status);
+          evidence("Live UCII compute.inspect decision: "
+                   +result.status+". No execution performed.");
+        }else{
+          set("proposal",
+              "VALIDATED PROPOSAL\nOperation: compute.inspect\n"
+              +"UCII authority check unavailable");
+          evidence("UCII inspection returned an invalid response");
+        }
+      }catch(_){
+        if(sessionId===expectedSession&&
+           turnId===expectedTurn){
+          set("proposal",
+              "VALIDATED PROPOSAL\nOperation: compute.inspect\n"
+              +"UCII authority check unavailable");
+          evidence("UCII inspection request failed");
+        }
+      }
+      return;
+    }
+
+    // Preserve the existing purchase proposal and demo workflow.
+    if(m.name!=="propose_compute_purchase"||
+       p.operation!=="EXECUTE"||
+       p.consequence_class!=="CONSEQUENTIAL"||
+       p.requested_scope?.operation!=="compute.purchase"||
+       !Number.isInteger(p.requested_parameters?.quantity)||
+       p.requested_parameters.quantity<1||
+       p.requested_parameters.unit!=="compute")return;
+
+    lastProposal=p;
+    refreshDemo();
+    set("proposal",
+        "VALIDATED PROPOSAL\nOperation: compute.purchase\n"
+        +"Quantity: "+p.requested_parameters.quantity
+        +"\nAuthorization: NOT PERFORMED");
+    evidence("Structured compute.purchase proposal validated. "
+             +"No authorization or execution occurred.");
+  }catch(_){
+    evidence("Proposal validation endpoint unavailable");
+  }
+}
 function resample(samples,inputRate){const merged=new Float32Array(resampleBuffer.length+samples.length);merged.set(resampleBuffer);merged.set(samples,resampleBuffer.length);const step=inputRate/RATE,out=[];while(resamplePosition+1<merged.length){const i=Math.floor(resamplePosition),f=resamplePosition-i;out.push(merged[i]*(1-f)+merged[i+1]*f);resamplePosition+=step}const retain=Math.floor(resamplePosition);resampleBuffer=merged.slice(retain);resamplePosition-=retain;return out}
 function audioFrame(samples,inputRate){draw(samples);if(!sessionId||socket?.readyState!==WebSocket.OPEN)return;const floats=resample(samples,inputRate),pcm=new Int16Array(floats.length);for(let i=0;i<floats.length;i++){const x=Math.max(-1,Math.min(1,floats[i]));pcm[i]=Math.round(x*(x<0?32768:32767))}const joined=new Int16Array(queue.length+pcm.length);joined.set(queue);joined.set(pcm,queue.length);let at=0;while(at+FRAME<=joined.length){const frame=joined.subarray(at,at+FRAME);const bytes=new Uint8Array(frame.buffer,frame.byteOffset,frame.byteLength);let bin="";for(const b of bytes)bin+=String.fromCharCode(b);send({type:"input.audio",audio:btoa(bin)});frames++;set("frames",frames);at+=FRAME}queue=joined.slice(at)}
 function draw(samples){for(const id of ["wave","wave2"]){const c=$(id),ctx=c.getContext("2d"),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);ctx.strokeStyle="#52b6ff";ctx.lineWidth=2;ctx.beginPath();for(let i=0;i<w;i+=4){const v=samples[Math.floor(i/w*samples.length)]||0;ctx.moveTo(i,h/2-v*h*.42);ctx.lineTo(i,h/2+v*h*.42)}ctx.stroke()}}
