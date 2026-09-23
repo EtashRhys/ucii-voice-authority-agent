@@ -112,6 +112,39 @@ class StructuredProposal:
                     f"{field_name} must be absent or a dictionary"
                 )
 
+
+COMPUTE_INSPECT_TOOL_NAME = "propose_compute_inspect"
+
+
+def build_compute_inspect_proposal(
+    *,
+    tool_name: str,
+    arguments: dict[str, Any],
+    ceremony_id: str,
+    session_id: str,
+    source_turn_reference: str,
+    created_at: datetime,
+) -> StructuredProposal:
+    """Validate a read-only inspection proposal without granting authority."""
+
+    if tool_name != COMPUTE_INSPECT_TOOL_NAME:
+        raise ValueError("unsupported tool")
+
+    if not isinstance(arguments, dict) or arguments:
+        raise ValueError("compute inspection requires empty arguments")
+
+    return StructuredProposal(
+        ceremony_id=ceremony_id,
+        session_id=session_id,
+        operation=Operation.INSPECT,
+        consequence_class=ConsequenceClass.LOW,
+        source_turn_reference=source_turn_reference,
+        created_at=created_at,
+        requested_scope={"operation": "compute.inspect"},
+        requested_parameters={},
+    )
+
+
 COMPUTE_PURCHASE_TOOL_NAME = "propose_compute_purchase"
 
 

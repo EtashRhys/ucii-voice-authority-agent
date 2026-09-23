@@ -26,6 +26,7 @@ from voice_authority.first_human_bootstrap_client import (
     FirstHumanBootstrapDenied,
 )
 from voice_authority.structured_proposal import (
+    build_compute_inspect_proposal,
     build_compute_purchase_proposal,
 )
 
@@ -181,7 +182,12 @@ async def assemblyai_tool_proposal(
     """Validate an AssemblyAI tool proposal without creating authority."""
 
     try:
-        proposal = build_compute_purchase_proposal(
+        builder = (
+            build_compute_inspect_proposal
+            if request.tool_name == "propose_compute_inspect"
+            else build_compute_purchase_proposal
+        )
+        proposal = builder(
             tool_name=request.tool_name,
             arguments=request.arguments,
             ceremony_id=str(uuid4()),

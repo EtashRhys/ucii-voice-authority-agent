@@ -3017,6 +3017,7 @@
         let assemblyaiSocket = null;
         let assemblyaiSessionId = null;
         let finalizedTurnItemId = null;
+        const finalizedTranscriptHistory = [];
         let audioChunksSent = 0;
         let audioBytesSent = 0;
         let pendingAssemblyAIAudio = new Int16Array(0);
@@ -3380,7 +3381,7 @@
                 assemblyaiSessionId === null ||
                 finalizedTurnItemId === null ||
                 typeof message.name !== "string" ||
-                message.name.length === 0 ||
+                !message.name ||
                 typeof message.arguments !== "object" ||
                 message.arguments === null ||
                 Array.isArray(message.arguments)
@@ -3388,49 +3389,111 @@
                 return;
             }
 
-            try {
-                const response = await fetch(
-                    "/proposals/assemblyai-tool",
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            session_id: assemblyaiSessionId,
-                            source_turn_reference: finalizedTurnItemId,
-                            tool_name: message.name,
-                            arguments: message.arguments,
-                        }),
-                    },
-                );
+            const sessionId = assemblyaiSessionId;
+            const turnId = finalizedTurnItemId;
 
-                if (!response.ok) {
-                    return;
-                }
+            try {
+                const response = await fetch("/proposals/assemblyai-tool", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        source_turn_reference: turnId,
+                        tool_name: message.name,
+                        arguments: message.arguments,
+                    }),
+                });
+
+                if (!response.ok) return;
 
                 const proposal = await response.json();
 
                 if (
-                    proposal.operation !== "EXECUTE" ||
-                    proposal.consequence_class !== "CONSEQUENTIAL" ||
-                    proposal.session_id !== assemblyaiSessionId ||
-                    proposal.source_turn_reference !== finalizedTurnItemId ||
-                    proposal.requested_scope?.operation !==
-                        "compute.purchase" ||
-                    !Number.isInteger(
-                        proposal.requested_parameters?.quantity,
-                    ) ||
-                    proposal.requested_parameters.quantity < 1 ||
-                    proposal.requested_parameters?.unit !== "compute"
+                    assemblyaiSessionId !== sessionId ||
+                    finalizedTurnItemId !== turnId ||
+                    proposal.session_id !== sessionId ||
+                    proposal.source_turn_reference !== turnId
                 ) {
                     return;
                 }
 
-                validatedProposal.textContent =
-                    `EXECUTE compute.purchase — ` +
-                    `${proposal.requested_parameters.quantity} compute — ` +
-                    `${proposal.consequence_class}`;
+                if (
+                    message.name === "propose_compute_inspect" &&
+                    proposal.operation === "INSPECT" &&
+                    proposal.consequence_class === "LOW" &&
+                    proposal.requested_scope?.operation ===
+                        "compute.inspect" &&
+                    Object.keys(
+                        proposal.requested_parameters || {}
+                    ).length === 0
+                ) {
+                    validatedProposal.textContent =
+                        "INSPECT compute.inspect — LOW — " +
+                        "checking live UCII authority...";
+
+                    try {
+                        const check = await fetch(
+                            "/ucii/delegated/check?operation=compute.inspect",
+                            {method: "POST", cache: "no-store"},
+                        );
+                        const result = await check.json();
+
+                        if (
+                            assemblyaiSessionId !== sessionId ||
+                            finalizedTurnItemId !== turnId
+                        ) return;
+
+                        if (
+                            check.ok &&
+                            result.operation === "compute.inspect" &&
+                            (
+                                (result.status === "AUTHORIZED" &&
+                                 result.authorized === true) ||
+                                (result.status === "DENIED" &&
+                                 result.authorized === false)
+                            )
+                        ) {
+                            validatedProposal.textContent =
+                                "INSPECT compute.inspect — LOW — " +
+                                "UCII: " +
+                                (result.authorized
+                                    ? "AUTHORIZED"
+                                    : "DENIED");
+                        } else {
+                            validatedProposal.textContent =
+                                "INSPECT compute.inspect — " +
+                                "UCII check unavailable";
+                        }
+                    } catch {
+                        if (
+                            assemblyaiSessionId === sessionId &&
+                            finalizedTurnItemId === turnId
+                        ) {
+                            validatedProposal.textContent =
+                                "INSPECT compute.inspect — " +
+                                "UCII check unavailable";
+                        }
+                    }
+                    return;
+                }
+
+                if (
+                    message.name === "propose_compute_purchase" &&
+                    proposal.operation === "EXECUTE" &&
+                    proposal.consequence_class === "CONSEQUENTIAL" &&
+                    proposal.requested_scope?.operation ===
+                        "compute.purchase" &&
+                    Number.isInteger(
+                        proposal.requested_parameters?.quantity
+                    ) &&
+                    proposal.requested_parameters.quantity >= 1 &&
+                    proposal.requested_parameters?.unit === "compute"
+                ) {
+                    validatedProposal.textContent =
+                        "EXECUTE compute.purchase — " +
+                        proposal.requested_parameters.quantity +
+                        " compute — CONSEQUENTIAL";
+                }
             } catch {
                 return;
             }
@@ -3503,6 +3566,10 @@
                                 "for the UCII Voice Authority Agent. " +
                                 "Understanding a request does not create " +
                                 "authority to execute it. " +
+                                "When the user asks to inspect compute " +
+                                "authority, call propose_compute_inspect " +
+                                "with empty arguments. Inspection does not " +
+                                "grant authority or execute anything. " +
                                 "When the user explicitly requests a purchase " +
                                 "of compute units, you must call " +
                                 "propose_compute_purchase with the requested " +
@@ -3510,6 +3577,20 @@
                                 "proposes the request; it does not authorize " +
                                 "or execute it.",
                             tools: [
+                                {
+                                    type: "function",
+                                    name: "propose_compute_inspect",
+                                    description:
+                                        "Propose a read-only inspection of " +
+                                        "compute authority. Does not grant " +
+                                        "authority or execute anything.",
+                                    parameters: {
+                                        type: "object",
+                                        properties: {},
+                                        required: [],
+                                        additionalProperties: false,
+                                    },
+                                },
                                 {
                                     type: "function",
                                     name: "propose_compute_purchase",
@@ -3581,6 +3662,7 @@
 
                     assemblyaiSessionId = message.session_id;
                     finalizedTurnItemId = null;
+                    finalizedTranscriptHistory.length = 0;
                     speechDetection.textContent = "NONE";
                     partialTurn.textContent = "NONE";
                     validatedProposal.textContent = "NONE";
@@ -3611,6 +3693,7 @@
                     finalizedTurnItemId = message.item_id;
                     partialTurn.textContent = "NONE";
                     finalizedTurn.textContent = message.text;
+                    finalizedTranscriptHistory.push(message.text);
                     updateLiveVoiceTranscript();
                 } else if (message.type === "tool.call") {
                     void submitAssemblyAIToolProposal(message);
@@ -4203,6 +4286,13 @@
                 finalized !== "NONE"
             ) {
                 value = finalized;
+            }
+
+            if (finalizedTranscriptHistory.length > 0) {
+                value = finalizedTranscriptHistory.join("\n") +
+                    (partial.length > 0 && partial !== "NONE"
+                        ? "\n" + partial
+                        : "");
             }
 
             if (value.length === 0) {
