@@ -604,12 +604,14 @@ async function validateProposal(m){
           set("proposal",
               "VALIDATED PROPOSAL\nOperation: compute.inspect\n"
               +"Consequence: LOW\nUCII authority: "+result.status);
+          set("agent",result.authorized===true?"UCII confirms that compute inspection is authorized. No execution occurred.":"UCII confirms that compute inspection is denied. No execution occurred.");
           evidence("Live UCII compute.inspect decision: "
                    +result.status+". No execution performed.");
         }else{
           set("proposal",
               "VALIDATED PROPOSAL\nOperation: compute.inspect\n"
               +"UCII authority check unavailable");
+          set("agent","UCII authority could not be verified. No execution occurred.");
           evidence("UCII inspection returned an invalid response");
         }
       }catch(_){
@@ -618,6 +620,7 @@ async function validateProposal(m){
           set("proposal",
               "VALIDATED PROPOSAL\nOperation: compute.inspect\n"
               +"UCII authority check unavailable");
+          set("agent","UCII authority check is unavailable. No execution occurred.");
           evidence("UCII inspection request failed");
         }
       }
