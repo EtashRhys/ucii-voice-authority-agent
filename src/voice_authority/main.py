@@ -1,3 +1,4 @@
+import asyncio
 """HTTP application boundary for the UCII Voice Authority Agent."""
 
 from voice_authority.demo_authority import DemoAuthority
@@ -371,6 +372,115 @@ async def voice_delegated_authority_check() -> dict[str, Any]:
         "source": decision.source,
         "operation": decision.operation,
     }
+
+
+
+
+@app.get("/ucii/access/status")
+async def voice_ucii_access_status() -> dict[str, Any]:
+    """Independent, bounded, read-only UCII status checks."""
+    identity_id = "9df0ff8a-25d0-4340-be32-05e8263f1277"
+    fingerprint = os.getenv("VOICE_UCII_CREDENTIAL_FINGERPRINT", "").strip()
+
+    result: dict[str, Any] = {
+        "source": "UCII_LIVE",
+        "identity": {"status": "UNAVAILABLE"},
+        "credential": {"status": "UNAVAILABLE"},
+    }
+
+    async def lookup_identity():
+        try:
+            def fetch_identity():
+                with httpx.Client(timeout=5.0) as client:
+                    return client.get(
+                        f"http://127.0.0.1:8000/v1/identity/{identity_id}"
+                    )
+
+            response = await asyncio.to_thread(fetch_identity)
+
+            if response.status_code != 200:
+                return {
+                    "status": "UNAVAILABLE",
+                    "http_status": response.status_code,
+                }
+
+            record = response.json()
+            if not isinstance(record, dict):
+                return {"status": "UNVERIFIED"}
+
+            if str(record.get("id")) != identity_id:
+                return {"status": "UNVERIFIED"}
+
+            active = record.get("is_active")
+            return {
+                "status": (
+                    "ACTIVE" if active is True
+                    else "INACTIVE" if active is False
+                    else "UNVERIFIED"
+                ),
+                "identity_id": identity_id,
+                "identity_type": str(
+                    record.get("identity_type", "UNKNOWN")
+                ),
+            }
+
+        except (httpx.HTTPError, ValueError) as exc:
+            return {
+                "status": "UNAVAILABLE",
+                "error": type(exc).__name__,
+            }
+
+    async def lookup_credential():
+        if not fingerprint:
+            return {
+                "status": "UNAVAILABLE",
+                "reason": "CREDENTIAL_BINDING_NOT_CONFIGURED",
+            }
+
+        try:
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                response = await client.get(
+                    "http://127.0.0.1:8000/v1/credentials/"
+                    + fingerprint
+                )
+
+            if response.status_code != 200:
+                return {
+                    "status": "UNAVAILABLE",
+                    "http_status": response.status_code,
+                }
+
+            record = response.json()
+            if not isinstance(record, dict):
+                return {"status": "UNVERIFIED"}
+
+            returned = record.get(
+                "fingerprint",
+                record.get("credential_fingerprint"),
+            )
+            if returned != fingerprint:
+                return {"status": "UNVERIFIED"}
+
+            status = record.get("status", "UNKNOWN")
+            if isinstance(status, dict):
+                status = status.get("value", "UNKNOWN")
+
+            return {
+                "status": str(status).upper(),
+                "proof_verified": False,
+            }
+
+        except (httpx.HTTPError, ValueError) as exc:
+            return {
+                "status": "UNAVAILABLE",
+                "error": type(exc).__name__,
+            }
+
+    result["identity"], result["credential"] = await asyncio.gather(
+        lookup_identity(),
+        lookup_credential(),
+    )
+    return result
 
 
 @app.get("/health")

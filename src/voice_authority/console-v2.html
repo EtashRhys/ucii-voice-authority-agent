@@ -446,36 +446,75 @@ const set=(id,v)=>$(id).textContent=String(v);const event=(s)=>{set("last-event"
 function evidence(s){const p=document.createElement("div");p.className="event";p.textContent=new Date().toLocaleTimeString()+" · "+s;$("evidence").prepend(p)}
 function refresh(){const ready=!!sessionId&&socket?.readyState===WebSocket.OPEN;$("connect").disabled=!!socket;$("disconnect").disabled=!socket;$("mic").disabled=!ready;set("session-pill",ready?"VOICE READY":"VOICE OFFLINE");if(ready)set("connection","READY");else if(socket)set("connection","CONNECTING");else if($("connection").textContent!=="FAILED")set("connection","DISCONNECTED")}
 async function checkBackend(){try{const r=await fetch("/health",{cache:"no-store"});if(!r.ok)throw Error();const j=await r.json();set("backend",j.status==="ok"?"BACKEND ONLINE":"BACKEND UNVERIFIED")}catch{set("backend","BACKEND UNAVAILABLE")}}
-async function checkAuthority(){
-  evidence("Checking live UCII delegated authority for compute.purchase…");
+async function checkAccess(){
   try{
-    const r=await fetch("/ucii/delegated/check",{
-      method:"POST",
-      cache:"no-store"
-    });
+    const r=await fetch("/ucii/access/status",{cache:"no-store"});
+    if(!r.ok)throw Error("UCII access lookup failed");
     const j=await r.json();
-    if(r.status===503){
-      evidence("UCII AUTHORITY: UNAVAILABLE — no authority established");
-      return;
-    }
-    if(!r.ok||!j||j.source!=="UCII_LIVE"||
-       j.operation!=="compute.purchase"||
-       typeof j.authorized!=="boolean"||
-       !["AUTHORIZED","DENIED"].includes(j.status)||
-       j.status!==(j.authorized?"AUTHORIZED":"DENIED")){
-      evidence("UCII AUTHORITY: UNAVAILABLE — invalid response");
-      return;
-    }
-    evidence(
-      j.authorized
-        ?"UCII AUTHORITY: AUTHORIZED (read-only check; execution not permitted by this result)"
-        :"UCII AUTHORITY: DENIED"
+    if(j.source!=="UCII_LIVE")throw Error("Invalid UCII source");
+
+    const identity=j.identity||{};
+    set("identity",
+      identity.status==="ACTIVE"
+        ?"UCII ACTIVE · "+identity.identity_id
+        :identity.status==="INACTIVE"
+        ?"UCII IDENTITY INACTIVE"
+        :"UCII IDENTITY "+(identity.status||"UNAVAILABLE")
+    );
+
+    const credential=j.credential||{};
+    set("authentication",
+      credential.status==="ACTIVE"
+        ?"CREDENTIAL ACTIVE · PROOF NOT VERIFIED"
+        :"CREDENTIAL "+(credential.status||"UNAVAILABLE")
     );
   }catch(_){
-    evidence("UCII AUTHORITY: UNAVAILABLE — request failed");
+    set("identity","UCII IDENTITY UNAVAILABLE");
+    set("authentication","CREDENTIAL UNAVAILABLE");
   }
 }
-checkBackend();void checkAuthority();$("earth").addEventListener("error",()=>{$("earth").style.display="none";evidence("Local Earth asset unavailable; serve this page from the Voice Authority app.")});
+
+async function checkAuthority(){
+  set("authority","CHECKING UCII");
+  try{
+    const r=await fetch("/ucii/delegated/check",{
+      method:"POST",cache:"no-store"
+    });
+    const j=await r.json();
+
+    if(!r.ok||j.source!=="UCII_LIVE"||
+       j.operation!=="compute.purchase"||
+       typeof j.authorized!=="boolean"||
+       j.status!==(j.authorized?"AUTHORIZED":"DENIED")){
+      set("authority","UCII AUTHORITY UNAVAILABLE");
+      set("hero-auth","UNVERIFIED");
+      set("decision","NONE");
+      evidence("UCII AUTHORITY: UNAVAILABLE");
+      return;
+    }
+
+    // A valid delegated-check response requires verified credential proof,
+    // including when the delegated operation itself is denied.
+    set("authentication","UCII CRYPTOGRAPHIC PROOF VERIFIED");
+    set("authority",
+      j.authorized?"UCII AUTHORIZED":"UCII DENIED"
+    );
+    set("hero-auth",j.authorized?"AUTHORIZED":"DENIED");
+    set("decision",
+      j.authorized?"UCII AUTHORIZED":"UCII DENIED");
+    evidence(
+      j.authorized
+        ?"UCII AUTHORITY: AUTHORIZED — read-only check, no execution"
+        :"UCII AUTHORITY: DENIED — credential proof verified"
+    );
+  }catch(_){
+    set("authority","UCII AUTHORITY UNAVAILABLE");
+      set("hero-auth","UNVERIFIED");
+      set("decision","NONE");
+    evidence("UCII AUTHORITY: UNAVAILABLE");
+  }
+}
+checkBackend();void checkAccess().then(checkAuthority);$("earth").addEventListener("error",()=>{$("earth").style.display="none";evidence("Local Earth asset unavailable; serve this page from the Voice Authority app.")});
 function showTranscript(){set("live",partial||lastFinal||"Listening for your voice…")}
 function send(obj){if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringify(obj))}
 const sessionPrompt="You are the conversational interface for UCII Voice Authority. Voice interpretation is not authorization. When the user explicitly requests a purchase of compute units, call propose_compute_purchase with quantity and unit compute. The tool proposes only; it cannot authorize or execute. Keep replies brief.";
@@ -510,10 +549,7 @@ function refreshDemo(){
   $("execute").disabled=demoBusy||!active||!validProposal;
   $("revoke").disabled=demoBusy||!active;
 
-  set("authority",
-    !demoState?"DEMO STATE UNAVAILABLE":
-    demoState.revoked?"DEMO REVOKED":
-    active?"DEMO DELEGATION ACTIVE":"NO DEMO DELEGATION");
+
 }
 
 async function loadDemoStatus(){
