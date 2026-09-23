@@ -19,7 +19,10 @@ from .protected_signer_client import (
 )
 
 
-OPERATION = "compute.purchase"
+ALLOWED_OPERATIONS = frozenset({
+    "compute.purchase",
+    "compute.inspect",
+})
 
 
 class AuthorityCheckError(RuntimeError):
@@ -57,6 +60,7 @@ async def check_purchase_authority(
     ucii_base_url: str,
     binding: VoiceIdentityBinding,
     timeout_seconds: float = 5.0,
+    operation: str = "compute.purchase",
 ) -> AuthorityDecision:
     """Obtain a fresh, read-only UCII delegated-authority decision.
 
@@ -74,9 +78,12 @@ async def check_purchase_authority(
     if not 0 < timeout_seconds <= 30:
         raise ValueError("invalid UCII timeout")
 
+    if operation not in ALLOWED_OPERATIONS:
+        raise ValueError("unsupported delegated operation")
+
     # A fresh message prevents accidental reuse of an earlier proof.
     # The UCII endpoint independently verifies the signed message.
-    message = f"ucii-voice-authority:{OPERATION}:{uuid4()}"
+    message = f"ucii-voice-authority:{operation}:{uuid4()}"
 
     try:
         signature = await asyncio.to_thread(
@@ -93,7 +100,7 @@ async def check_purchase_authority(
     request = {
         "identity_id": binding.identity_id,
         "credential_fingerprint": binding.credential_fingerprint,
-        "operation": OPERATION,
+        "operation": operation,
         "message": message,
         "signature": base64.b64encode(signature).decode("ascii"),
     }
@@ -130,5 +137,5 @@ async def check_purchase_authority(
 
     return AuthorityDecision(
         authorized=authorized,
-        operation=OPERATION,
+        operation=operation,
     )

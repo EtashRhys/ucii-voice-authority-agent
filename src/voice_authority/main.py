@@ -319,12 +319,20 @@ async def demo_authority_revoke() -> dict[str, Any]:
 
 
 @app.post("/ucii/delegated/check")
-async def voice_delegated_authority_check() -> dict[str, Any]:
+async def voice_delegated_authority_check(
+    operation: str = "compute.purchase",
+) -> dict[str, Any]:
     """Read-only, signer-backed UCII delegated authority check.
 
     This endpoint never grants authority or executes an operation.
     Missing binding metadata and upstream errors fail closed.
     """
+    if operation not in ("compute.purchase", "compute.inspect"):
+        raise HTTPException(
+            status_code=422,
+            detail="Unsupported delegated operation",
+        )
+
     fingerprint = os.environ.get(
         "VOICE_UCII_CREDENTIAL_FINGERPRINT", ""
     ).strip()
@@ -354,6 +362,7 @@ async def voice_delegated_authority_check() -> dict[str, Any]:
         decision = await check_purchase_authority(
             ucii_base_url="http://127.0.0.1:8000",
             binding=binding,
+            operation=operation,
         )
     except AuthorityCheckError:
         raise HTTPException(
