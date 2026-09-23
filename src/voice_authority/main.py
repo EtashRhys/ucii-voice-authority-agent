@@ -1,5 +1,12 @@
 """HTTP application boundary for the UCII Voice Authority Agent."""
 
+from voice_authority.demo_authority import DemoAuthority
+from voice_authority.ucii_authority_client import (
+    AuthorityCheckError,
+    VoiceIdentityBinding,
+    check_purchase_authority,
+)
+
 import os
 from dataclasses import asdict
 from datetime import datetime, timezone
@@ -259,6 +266,111 @@ async def first_human_bootstrap_complete(
             status_code=502,
             detail="Protected UCII bootstrap request failed.",
         ) from exc
+
+
+
+@app.get("/console-v2", response_class=FileResponse)
+async def console_v2() -> FileResponse:
+    """Serve the approved V2.3 Voice Authority console."""
+    return FileResponse(
+        Path(__file__).with_name("console-v2.html")
+    )
+
+
+
+# Hackathon-only, process-local simulation. Never grants UCII authority.
+_demo_authority = DemoAuthority()
+
+
+class DemoPurchaseRequest(BaseModel):
+    quantity: int
+
+
+@app.get("/demo/authority/status")
+async def demo_authority_status() -> dict[str, Any]:
+    return {
+        "mode": "DEMO_SIMULATION",
+        "active": _demo_authority.active,
+        "revoked": _demo_authority.revoked,
+        "authority_id": _demo_authority.authority_id,
+        "spent_usd": str(_demo_authority.spent_usd),
+        "budget_usd": str(_demo_authority.budget_usd),
+        "real_ucii_authorization": False,
+        "real_execution": False,
+    }
+
+
+@app.post("/demo/authority/grant")
+async def demo_authority_grant() -> dict[str, Any]:
+    return _demo_authority.grant()
+
+
+@app.post("/demo/authority/evaluate")
+async def demo_authority_evaluate(
+    request: DemoPurchaseRequest,
+) -> dict[str, Any]:
+    return _demo_authority.evaluate_purchase(request.quantity)
+
+
+@app.post("/demo/authority/revoke")
+async def demo_authority_revoke() -> dict[str, Any]:
+    return _demo_authority.revoke()
+
+
+@app.post("/ucii/delegated/check")
+async def voice_delegated_authority_check() -> dict[str, Any]:
+    """Read-only, signer-backed UCII delegated authority check.
+
+    This endpoint never grants authority or executes an operation.
+    Missing binding metadata and upstream errors fail closed.
+    """
+    fingerprint = os.environ.get(
+        "VOICE_UCII_CREDENTIAL_FINGERPRINT", ""
+    ).strip()
+    purpose = os.environ.get(
+        "VOICE_UCII_SIGNING_PURPOSE", ""
+    ).strip()
+
+    if not fingerprint or not purpose:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "UNAVAILABLE",
+                "authorized": False,
+                "source": "UCII_UNAVAILABLE",
+                "reason": "Production credential binding not configured",
+            },
+        )
+
+    binding = VoiceIdentityBinding(
+        identity_id="9df0ff8a-25d0-4340-be32-05e8263f1277",
+        credential_id="fca03fa4-32c6-49fe-87b2-4b9e56453a66",
+        credential_fingerprint=fingerprint,
+        signing_purpose=purpose,
+    )
+
+    try:
+        decision = await check_purchase_authority(
+            ucii_base_url="http://127.0.0.1:8000",
+            binding=binding,
+        )
+    except AuthorityCheckError:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "UNAVAILABLE",
+                "authorized": False,
+                "source": "UCII_UNAVAILABLE",
+                "reason": "Live authority check could not be completed",
+            },
+        )
+
+    return {
+        "status": "AUTHORIZED" if decision.authorized else "DENIED",
+        "authorized": decision.authorized,
+        "source": decision.source,
+        "operation": decision.operation,
+    }
 
 
 @app.get("/health")

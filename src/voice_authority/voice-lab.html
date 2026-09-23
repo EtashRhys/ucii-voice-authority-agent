@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UCII — Isolated Voice Lab</title>
+<style>
+body {
+    margin: 2rem auto;
+    padding: 0 1rem;
+    max-width: 900px;
+    background: #101820;
+    color: #f4f7fa;
+    font: 16px system-ui, sans-serif;
+}
+button { padding: .8rem 1.2rem; margin: .3rem; cursor: pointer; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+section { border: 1px solid #506070; padding: 1rem; margin: 1rem 0; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+#partial { color: #ffb45c; }
+#final { color: #a9edc4; }
+</style>
+</head>
+<body>
+<h1>UCII — Isolated Voice Lab</h1>
+<p>Microphone → AssemblyAI → user transcription. No UCII actions.</p>
+
+<button id="connect">Connect</button>
+<button id="start" disabled>Start microphone</button>
+<button id="stop" disabled>Stop microphone</button>
+<button id="disconnect" disabled>Disconnect</button>
+
+<section>
+<strong>Connection:</strong> <span id="connection">Disconnected</span><br>
+<strong>Microphone:</strong> <span id="microphone">Stopped</span><br>
+<strong>Audio frames sent:</strong> <span id="frames">0</span>
+</section>
+
+<section>
+<h2>Live user transcription</h2>
+<div id="partial">Waiting…</div>
+<h2>Final user transcription</h2>
+<div id="final">Waiting…</div>
+</section>
+
+<section>
+<h2>Agent transcript</h2>
+<div id="agent">Waiting…</div>
+</section>
+
+<section>
+<h2>Incoming event log</h2>
+<pre id="events"></pre>
+</section>
+
+<script>
+"use strict";
+
+const $ = id => document.getElementById(id);
+const RATE = 24000;
+const FRAME = 2400;
+const WS_URL = "wss://agents.assemblyai.com/v1/ws";
+
+let socket = null;
+let sessionId = null;
+let stream = null;
+let context = null;
+let source = null;
+let worklet = null;
+let resampleBuffer = new Float32Array(0);
+let resamplePosition = 0;
+let pending = new Int16Array(0);
+let frames = 0;
+
+function log(type, detail = "") {
+    const line = new Date().toLocaleTimeString() +
+        "  " + type + (detail ? "  " + detail : "");
+    $("events").textContent += line + "\n";
+    $("events").scrollTop = $("events").scrollHeight;
+}
+
+function controls() {
+    const ready = socket?.readyState === WebSocket.OPEN &&
+        sessionId !== null;
+    $("connect").disabled = socket !== null;
+    $("start").disabled = !ready || stream !== null;
+    $("stop").disabled = stream === null;
+    $("disconnect").disabled = socket === null;
+}
+
+function resample(samples, sourceRate) {
+    const combined = new Float32Array(
+        resampleBuffer.length + samples.length
+    );
+    combined.set(resampleBuffer);
+    combined.set(samples, resampleBuffer.length);
+
+    const step = sourceRate / RATE;
+    const output = [];
+
+    while (resamplePosition + 1 < combined.length) {
+        const i = Math.floor(resamplePosition);
+        const fraction = resamplePosition - i;
+        output.push(
+            combined[i] +
+            (combined[i + 1] - combined[i]) * fraction
+        );
+        resamplePosition += step;
+    }
+
+    const retained = Math.floor(resamplePosition);
+    resampleBuffer = combined.slice(retained);
+    resamplePosition -= retained;
+    return output;
+}
+
+function sendAudio(samples, sourceRate) {
+    if (
+        socket?.readyState !== WebSocket.OPEN ||
+        sessionId === null
+    ) return;
+
+    const values = resample(samples, sourceRate);
+    const pcm = new Int16Array(values.length);
+
+    for (let i = 0; i < values.length; i++) {
+        const value = Math.max(-1, Math.min(1, values[i]));
+        pcm[i] = value < 0
+            ? Math.round(value * 32768)
+            : Math.round(value * 32767);
+    }
+
+    const combined = new Int16Array(pending.length + pcm.length);
+    combined.set(pending);
+    combined.set(pcm, pending.length);
+
+    let offset = 0;
+
+    while (combined.length - offset >= FRAME) {
+        const chunk = combined.slice(offset, offset + FRAME);
+        const bytes = new Uint8Array(chunk.buffer);
+        let binary = "";
+
+        for (const byte of bytes) {
+            binary += String.fromCharCode(byte);
+        }
+
+        socket.send(JSON.stringify({
+            type: "input.audio",
+            audio: btoa(binary)
+        }));
+
+        frames++;
+        $("frames").textContent = String(frames);
+        offset += FRAME;
+    }
+
+    pending = combined.slice(offset);
+}
+
+$("connect").onclick = async () => {
+    $("connect").disabled = true;
+    $("connection").textContent = "Obtaining token…";
+
+    try {
+        const response = await fetch("/assemblyai/token", {
+            cache: "no-store"
+        });
+        if (!response.ok) {
+            throw new Error("Token endpoint HTTP " + response.status);
+        }
+
+        const {token} = await response.json();
+        if (typeof token !== "string" || !token) {
+            throw new Error("Invalid token response");
+        }
+
+        const ws = new WebSocket(
+            WS_URL + "?token=" + encodeURIComponent(token)
+        );
+        socket = ws;
+        $("connection").textContent = "Connecting…";
+
+        ws.onopen = () => {
+            $("connection").textContent = "Initializing…";
+            ws.send(JSON.stringify({
+                type: "session.update",
+                session: {
+                    system_prompt:
+                        "You are assisting with a microphone and " +
+                        "transcription test. Do not call tools. " +
+                        "Keep replies brief.",
+                    tools: []
+                }
+            }));
+            controls();
+        };
+
+        ws.onmessage = event => {
+            let message;
+            try {
+                message = JSON.parse(event.data);
+            } catch {
+                log("non-JSON message");
+                return;
+            }
+
+            const type = String(message.type ?? "UNKNOWN");
+
+            // Log event types and transcript text, never audio or tokens.
+            if (type === "transcript.user.delta" ||
+                type === "transcript.user") {
+                log(type, JSON.stringify({
+                    text: message.text ?? null,
+                    delta: message.delta ?? null,
+                    item_id: message.item_id ?? null
+                }));
+            } else if (type !== "reply.audio") {
+                log(type);
+            }
+
+            if (type === "session.ready") {
+                sessionId = message.session_id ?? null;
+                $("connection").textContent =
+                    sessionId ? "READY" : "INVALID SESSION";
+                controls();
+            } else if (type === "transcript.user.delta") {
+                $("partial").textContent =
+                    message.text ?? message.delta ?? "";
+            } else if (type === "transcript.user") {
+                const text = message.text ?? "";
+                if (text) {
+                    const timestamp = new Date().toLocaleTimeString();
+                    const previous = $("final").textContent;
+                    $("final").textContent =
+                        (previous === "Waiting…" ? "" : previous) +
+                        "[" + timestamp + "] " + text + "\n";
+                }
+                $("partial").textContent = "";
+            } else if (type === "transcript.agent") {
+                const text = message.text ?? "";
+                if (text) {
+                    const timestamp = new Date().toLocaleTimeString();
+                    const previous = $("agent").textContent;
+                    $("agent").textContent =
+                        (previous === "Waiting…" ? "" : previous) +
+                        "[" + timestamp + "] " + text + "\n";
+                }
+            } else if (type === "session.error") {
+                $("connection").textContent = "SESSION ERROR";
+            }
+        };
+
+        ws.onerror = () => {
+            $("connection").textContent = "Connection error";
+        };
+
+        ws.onclose = () => {
+            sessionId = null;
+            socket = null;
+            $("connection").textContent = "Disconnected";
+            controls();
+        };
+
+        controls();
+    } catch (error) {
+        $("connection").textContent = error.message;
+        socket = null;
+        controls();
+    }
+};
+
+$("start").onclick = async () => {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                channelCount: 1,
+                echoCancellation: true,
+                noiseSuppression: true
+            }
+        });
+
+        context = new AudioContext();
+        await context.audioWorklet.addModule(
+            "/microphone-worklet.js"
+        );
+
+        source = context.createMediaStreamSource(stream);
+        worklet = new AudioWorkletNode(
+            context,
+            "microphone-capture-processor"
+        );
+
+        resampleBuffer = new Float32Array(0);
+        resamplePosition = 0;
+        pending = new Int16Array(0);
+
+        worklet.port.onmessage = event => {
+            if (event.data instanceof Float32Array) {
+                sendAudio(event.data, context.sampleRate);
+            }
+        };
+
+        source.connect(worklet);
+        await context.resume();
+
+        $("microphone").textContent = "Recording";
+        log("microphone.started");
+        controls();
+    } catch (error) {
+        $("microphone").textContent = "ERROR: " + error.message;
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+        controls();
+    }
+};
+
+$("stop").onclick = async () => {
+    if (worklet) {
+        worklet.port.onmessage = null;
+        worklet.disconnect();
+        worklet = null;
+    }
+    if (source) {
+        source.disconnect();
+        source = null;
+    }
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+    if (context) {
+        await context.close();
+        context = null;
+    }
+
+    $("microphone").textContent = "Stopped";
+    log("microphone.stopped");
+    controls();
+};
+
+$("disconnect").onclick = async () => {
+    if (stream) await $("stop").onclick();
+    if (socket) socket.close(1000, "Lab disconnect");
+    controls();
+};
+
+controls();
+</script>
+</body>
+</html>

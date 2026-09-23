@@ -259,25 +259,31 @@
             position: absolute;
             left: 2.8%;
             right: 2.8%;
-            bottom: 5%;
-            height: 18%;
+            bottom: 4%;
+            height: 22%;
             display: flex;
-            align-items: center;
+            align-items: flex-end;
             gap: 1em;
             min-width: 0;
         }
 
         .live-voice-transcript {
             min-width: 0;
+            min-height: 0;
+            max-height: 100%;
             flex: 1 1 auto;
-            overflow: hidden;
-            color: rgba(247, 249, 251, 0.94);
-            font-size: clamp(6px, 0.61vw, 12px);
-            font-style: italic;
+            overflow-x: hidden;
+            overflow-y: auto;
+            color: rgba(247, 249, 251, 0.98);
+            font-size: clamp(9px, 0.82vw, 15px);
+            font-style: normal;
             font-weight: 600;
-            line-height: 1.2;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            line-height: 1.35;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            scrollbar-width: thin;
+            scrollbar-color:
+                rgba(255, 151, 47, 0.55) transparent;
         }
 
         .live-voice-transcript.idle {
@@ -3013,6 +3019,8 @@
         let finalizedTurnItemId = null;
         let audioChunksSent = 0;
         let audioBytesSent = 0;
+        let pendingAssemblyAIAudio = new Int16Array(0);
+        const ASSEMBLYAI_AUDIO_FRAME_SAMPLES = 2400;
 
         function setMicrophoneState(state) {
             microphoneStatus.textContent = state;
@@ -3323,6 +3331,7 @@
         function resetAudioTransportEvidence() {
             audioChunksSent = 0;
             audioBytesSent = 0;
+            pendingAssemblyAIAudio = new Int16Array(0);
             audioChunksSentStatus.textContent = "0";
             audioBytesSentStatus.textContent = "0";
         }
@@ -3583,10 +3592,11 @@
                     speechDetection.textContent = "STOPPED";
                 } else if (message.type === "transcript.user.delta") {
                     if (
-                        typeof message.delta === "string" &&
-                        message.delta.trim().length > 0
+                        typeof message.text === "string" &&
+                        message.text.trim().length > 0
                     ) {
-                        partialTurn.textContent = message.delta;
+                        partialTurn.textContent = message.text;
+                        updateLiveVoiceTranscript();
                     }
                 } else if (message.type === "transcript.user") {
                     if (
@@ -3601,6 +3611,7 @@
                     finalizedTurnItemId = message.item_id;
                     partialTurn.textContent = "NONE";
                     finalizedTurn.textContent = message.text;
+                    updateLiveVoiceTranscript();
                 } else if (message.type === "tool.call") {
                     void submitAssemblyAIToolProposal(message);
                 } else if (message.type === "session.error") {
@@ -4328,7 +4339,33 @@
 
             const pcm16 = float32ToPcm16(resampled);
 
-            sendAssemblyAIAudio(pcm16);
+            const combined = new Int16Array(
+                pendingAssemblyAIAudio.length + pcm16.length,
+            );
+
+            combined.set(pendingAssemblyAIAudio);
+            combined.set(
+                pcm16,
+                pendingAssemblyAIAudio.length,
+            );
+
+            let offset = 0;
+
+            while (
+                combined.length - offset >=
+                ASSEMBLYAI_AUDIO_FRAME_SAMPLES
+            ) {
+                sendAssemblyAIAudio(
+                    combined.slice(
+                        offset,
+                        offset + ASSEMBLYAI_AUDIO_FRAME_SAMPLES,
+                    ),
+                );
+
+                offset += ASSEMBLYAI_AUDIO_FRAME_SAMPLES;
+            }
+
+            pendingAssemblyAIAudio = combined.slice(offset);
         }
 
         async function stopMicrophoneAudioPipeline() {
@@ -4354,6 +4391,7 @@
 
             microphoneResampleBuffer = new Float32Array(0);
             microphoneResamplePosition = 0;
+            pendingAssemblyAIAudio = new Int16Array(0);
         }
 
         async function startMicrophoneAudioPipeline(stream) {
@@ -4390,6 +4428,7 @@
                 microphoneWorkletNode = worklet;
                 microphoneResampleBuffer = new Float32Array(0);
                 microphoneResamplePosition = 0;
+                pendingAssemblyAIAudio = new Int16Array(0);
             } catch (error) {
                 if (context.state !== "closed") {
                     await context.close();
@@ -4576,6 +4615,99 @@
                     : "Tap to speak or hold...";
         }
 
+        /*
+         * New image-backed console:
+         * establish real AssemblyAI readiness before microphone capture.
+         *
+         * The existing session and transcript handlers remain authoritative
+         * for connection state and recognized speech.
+         */
+        async function ensureConsoleAssemblyAIReady() {
+            if (
+                assemblyaiSocket !== null &&
+                assemblyaiSocket.readyState === WebSocket.OPEN &&
+                assemblyaiSessionId !== null
+            ) {
+                return;
+            }
+
+            if (assemblyaiSocket === null) {
+                await connectAssemblyAI();
+            }
+
+            const socket = assemblyaiSocket;
+
+            if (socket === null) {
+                throw new Error("AssemblyAI connection was not established.");
+            }
+
+            await new Promise((resolve, reject) => {
+                let settled = false;
+
+                const cleanup = () => {
+                    clearInterval(readinessCheck);
+                    clearTimeout(timeout);
+                    socket.removeEventListener("error", onError);
+                    socket.removeEventListener("close", onClose);
+                };
+
+                const succeed = () => {
+                    if (settled) return;
+                    settled = true;
+                    cleanup();
+                    resolve();
+                };
+
+                const fail = (reason) => {
+                    if (settled) return;
+                    settled = true;
+                    cleanup();
+                    reject(new Error(reason));
+                };
+
+                const checkReady = () => {
+                    if (assemblyaiSocket !== socket) {
+                        fail("AssemblyAI connection was replaced.");
+                    } else if (
+                        socket.readyState === WebSocket.OPEN &&
+                        assemblyaiSessionId !== null
+                    ) {
+                        succeed();
+                    } else if (
+                        socket.readyState === WebSocket.CLOSING ||
+                        socket.readyState === WebSocket.CLOSED
+                    ) {
+                        fail("AssemblyAI connection closed.");
+                    } else if (
+                        assemblyaiStatus.textContent === "SESSION ERROR" ||
+                        assemblyaiStatus.textContent === "SESSION INVALID"
+                    ) {
+                        fail("AssemblyAI session initialization failed.");
+                    }
+                };
+
+                const onError = () => {
+                    fail("AssemblyAI connection failed.");
+                };
+
+                const onClose = () => {
+                    fail("AssemblyAI connection closed.");
+                };
+
+                socket.addEventListener("error", onError);
+                socket.addEventListener("close", onClose);
+
+                const readinessCheck = setInterval(checkReady, 50);
+
+                const timeout = setTimeout(
+                    () => fail("AssemblyAI session readiness timed out."),
+                    15000,
+                );
+
+                checkReady();
+            });
+        }
+
         if (liveBottomMicButton !== null) {
             liveBottomMicButton.addEventListener(
                 "click",
@@ -4595,7 +4727,32 @@
                     liveBottomMicButton.disabled = true;
 
                     try {
+                        liveVoiceTranscript.textContent =
+                            "Connecting to AssemblyAI…";
+                        liveVoiceTranscript.classList.add("idle");
+
+                        await ensureConsoleAssemblyAIReady();
+
+                        partialTurn.textContent = "NONE";
+                        finalizedTurn.textContent = "NONE";
+
                         await startMicrophone();
+
+                        if (
+                            microphoneStatus.textContent === "LISTENING"
+                        ) {
+                            updateLiveVoiceTranscript();
+                        } else {
+                            liveVoiceTranscript.textContent =
+                                "Microphone did not start.";
+                            liveVoiceTranscript.classList.add("idle");
+                        }
+                    } catch (error) {
+                        liveVoiceTranscript.textContent =
+                            error instanceof Error
+                                ? error.message
+                                : "Voice connection failed.";
+                        liveVoiceTranscript.classList.add("idle");
                     } finally {
                         liveBottomMicButton.disabled = false;
                     }
