@@ -806,7 +806,7 @@ window.addEventListener("pagehide",()=>{if(stream)stream.getTracks().forEach(t=>
   const log = byId("console-events");
 
   function classify(message) {
-    if (/failed|error|rejected|denied/i.test(message)) return "error";
+    if (/failed|error|rejected|invalid/i.test(message)) return "error";
     if (/unavailable|unverified|demo|simulated/i.test(message))
       return "warning";
     return "info";
