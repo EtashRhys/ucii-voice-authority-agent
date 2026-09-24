@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 from typing import Any
+from uuid import UUID
 
 
 class Operation(StrEnum):
@@ -195,4 +196,87 @@ def build_compute_purchase_proposal(
             "quantity": quantity,
             "unit": unit,
         },
+    )
+
+
+COMPUTE_GRANT_TOOL_NAME = "propose_compute_grant"
+COMPUTE_REVOKE_TOOL_NAME = "propose_compute_revoke"
+
+VOICE_IDENTITY_ID = "9df0ff8a-25d0-4340-be32-05e8263f1277"
+
+
+def build_compute_grant_proposal(
+    *,
+    tool_name: str,
+    arguments: dict[str, Any],
+    ceremony_id: str,
+    session_id: str,
+    source_turn_reference: str,
+    created_at: datetime,
+) -> StructuredProposal:
+    """Propose one bounded grant; never grant authority."""
+
+    if tool_name != COMPUTE_GRANT_TOOL_NAME:
+        raise ValueError("unsupported grant tool")
+
+    if (
+        not isinstance(arguments, dict)
+        or arguments != {"operation": "compute.inspect"}
+    ):
+        raise ValueError("unsupported grant scope")
+
+    return StructuredProposal(
+        ceremony_id=ceremony_id,
+        session_id=session_id,
+        operation=Operation.GRANT,
+        consequence_class=ConsequenceClass.SENSITIVE,
+        source_turn_reference=source_turn_reference,
+        created_at=created_at,
+        target_identity_id=VOICE_IDENTITY_ID,
+        requested_scope={"operation": "compute.inspect"},
+        requested_parameters={},
+    )
+
+
+def build_compute_revoke_proposal(
+    *,
+    tool_name: str,
+    arguments: dict[str, Any],
+    ceremony_id: str,
+    session_id: str,
+    source_turn_reference: str,
+    created_at: datetime,
+) -> StructuredProposal:
+    """Propose revocation of one exact authority; never revoke it."""
+
+    if tool_name != COMPUTE_REVOKE_TOOL_NAME:
+        raise ValueError("unsupported revoke tool")
+
+    if (
+        not isinstance(arguments, dict)
+        or set(arguments) != {"authority_id"}
+        or not isinstance(arguments["authority_id"], str)
+    ):
+        raise ValueError("one exact authority ID is required")
+
+    authority_id = arguments["authority_id"]
+
+    try:
+        parsed = UUID(authority_id)
+    except (ValueError, AttributeError) as exc:
+        raise ValueError("invalid authority ID") from exc
+
+    if str(parsed) != authority_id:
+        raise ValueError("authority ID must be canonical")
+
+    return StructuredProposal(
+        ceremony_id=ceremony_id,
+        session_id=session_id,
+        operation=Operation.REVOKE,
+        consequence_class=ConsequenceClass.SENSITIVE,
+        source_turn_reference=source_turn_reference,
+        created_at=created_at,
+        target_identity_id=VOICE_IDENTITY_ID,
+        target_authority_id=authority_id,
+        requested_parameters={},
     )

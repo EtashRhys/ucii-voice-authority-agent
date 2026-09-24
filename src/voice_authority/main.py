@@ -28,6 +28,9 @@ from voice_authority.first_human_bootstrap_client import (
 from voice_authority.structured_proposal import (
     build_compute_inspect_proposal,
     build_compute_purchase_proposal,
+    build_compute_grant_proposal,
+    build_compute_revoke_proposal,
+    Operation,
 )
 
 ASSEMBLYAI_TOKEN_URL = "https://agents.assemblyai.com/v1/token"
@@ -182,11 +185,15 @@ async def assemblyai_tool_proposal(
     """Validate an AssemblyAI tool proposal without creating authority."""
 
     try:
-        builder = (
-            build_compute_inspect_proposal
-            if request.tool_name == "propose_compute_inspect"
-            else build_compute_purchase_proposal
-        )
+        builders = {
+            "propose_compute_inspect": build_compute_inspect_proposal,
+            "propose_compute_purchase": build_compute_purchase_proposal,
+            "propose_compute_grant": build_compute_grant_proposal,
+            "propose_compute_revoke": build_compute_revoke_proposal,
+        }
+        builder = builders.get(request.tool_name)
+        if builder is None:
+            raise ValueError("unsupported tool")
         proposal = builder(
             tool_name=request.tool_name,
             arguments=request.arguments,
@@ -201,7 +208,12 @@ async def assemblyai_tool_proposal(
             detail="Invalid bounded tool proposal.",
         ) from exc
 
-    return asdict(proposal)
+    result = asdict(proposal)
+    if proposal.operation in (Operation.GRANT, Operation.REVOKE):
+        result["authorization_status"] = (
+            "AWAITING_HUMAN_AUTHORIZATION"
+        )
+    return result
 
 
 @app.post("/human-bootstrap/begin")
