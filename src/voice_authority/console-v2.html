@@ -398,6 +398,38 @@
   }
 }
 
+
+/* Floating primary microphone: no additional dashboard row. */
+.center .voice {
+  position:relative;
+  overflow:visible;
+}
+.center .voice-line {
+  position:relative;
+}
+.center .voice-line > #mic {
+  border-radius:22px;
+  position:absolute;
+  left:50%;
+  top:-45px;
+  bottom:auto;
+  transform:translateX(-50%);
+  z-index:30;
+  width:96px;
+  height:96px;
+  font-size:42px;
+}
+.center .voice-line > #mic:not(:disabled):hover {
+  transform:translateX(-50%) scale(1.075);
+}
+@media(max-width:760px) {
+  .center .voice-line > #mic {
+    width:110px;
+    height:110px;
+    font-size:48px;
+    top:-105px;
+  }
+}
 </style></head><body><main class="app">
 <header><div class="brand brand-top"><div class="logo">UCII</div><div class="top-ucii-details"><div class="sub">UNIVERSAL CRYPTOGRAPHIC IDENTITY INFRASTRUCTURE</div><div class="tiny">VOICE AUTHORITY · CAPABILITY IS NOT AUTHORITY</div></div><span class="brand-plus" aria-label="plus">+</span><div class="top-assembly" aria-label="UCII plus AssemblyAI"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACUAAAAiCAYAAADYmxC7AAACn0lEQVR4nO2WPWhTURiGv3N/cpOYFEmo0ahQA12EIoKTtFpiRYcs0sVBLS7qYDYLTg6dRJ0Sp+pgHYvFpaBgFYXi6pDNoYo/pa3aQm56k9wk9ziEhubknu+cm9xIB98pue/5eTjn5XwfwB4U6WbSiav0eEL79SCg07FwkER2e44Dq4pCKg1qzC7kBx7+E6ixK+b1Q7HyU8nlV+Zzg8N9hQqM0pHTQ2sfAQB+Fx07GiLawbga0jWi8mepS/O5+IW+QaWn1go/NuqJNlCdqMNHtCgGZtHBU4t58kl2H8ULFAsEAGDXaOPben0bmxcmm/e97CMNdfT8n9s8z7RorVR26vzZjYlMlp70HSqoVa5h/lbRqWC+AeaEr1DJtJkhQIewMWaZIicFoJLqDV+hjIA1jvnlemjm82Zy3KrQEn8UTcleoRSUTmrcq3Oo+uH7m/hje5kUyvb+y9g6soEXQiXTZgbzLTsyt/P77TPjFQBZ4Y92Ur5A7TOK9zB/9V10cff/BjVm+aNpajJbnO4JKjBKR7CA16j+nP0mqncygUehDkc2pjD/Z+nAnLujLvFniQOPQmEBp0C+2suk4OZZNHYXWzdItm52BSUK+HZ1YIbnieqcAo1zXUGFAyX06tiAs3JAe8J3aepStjrpGUohjbM8zy3grF7kYrcwXyclbuBdoY5dXH+ELcgPOCss8Pwi7QqlkfoZbCtewFnVaAR5s/iB74ASFV+Zq9vRy7yxgPm8wHdAiQL+5XXijixUU97frA6oXgPOSvRmuRXpNijR21S1w++9QjXfLOy0nI7TaoPyWnxlhQeeptiutAXlZ8BZiQLPFukWlKi79B7wjq2lA9+CEnWXvQF5C7wC4K277FbNwMt1pQpA/wLOyo+u9L/2vP4CqMIQOz8lCgcAAAAASUVORK5CYII=" alt="AssemblyAI A logo" class="assembly-logo-image"><span>AssemblyAI</span></div></div><div class="row header-status"><span class="pill" id="backend">BACKEND CHECKING</span><span class="pill" id="session-pill">VOICE OFFLINE</span></div></header>
 <aside class="cols"><section class="panel"><h2>IDENTITY & ACCESS</h2><div class="info"><span>Agent identity</span><span id="identity" class="warn">NOT VERIFIED IN UI</span></div><div class="info"><span>Authentication</span><span id="authentication" class="muted">AWAITING EVIDENCE</span></div><div class="info"><span>Delegated authority</span><span id="authority" class="muted">NOT LOADED</span></div><p class="notice">Identity, authentication and authority must come from verified UCII evidence—not the voice model or a decorative badge.</p></section><section class="panel" style="flex:1"><h2>AUTHORITY CONTROLS</h2><button class="control deny" id="deny"><span class="symbol">⊘</span><span>DENY<small>Record a local rejection; no execution</small></span></button><button class="control grant" id="grant" title="Requires an authenticated UCII governance endpoint"><span class="symbol">✓</span><span>DEMO GRANT<small>Simulated HUMAN delegation; no UCII grant</small></span></button><button class="control execute" id="execute" disabled title="Requires active demo delegation and a validated proposal; no real execution"><span class="symbol">⚙</span><span>DEMO EXECUTE<small>Simulated policy decision; no purchase</small></span></button><button class="control revoke" id="revoke" disabled title="Requires delegated-authority revoke endpoint"><span class="symbol">◇</span><span>DEMO REVOKE<small>Permanently revoke simulated delegation</small></span></button><p class="notice">DEMO ONLY: grant, policy approval and revocation are simulated. No real UCII authority, payment or execution occurs.</p></section></aside>
