@@ -64,7 +64,7 @@
 .center .mic{position:relative;isolation:isolate;flex:none;width:clamp(72px,9vh,100px);height:clamp(72px,9vh,100px);border:3px solid #85ffe8;background:radial-gradient(circle at 37% 28%,#247ca2 0%,#0c4b71 39%,#071e39 78%);color:#fff;font-size:clamp(34px,4.4vh,51px);line-height:1;box-shadow:0 0 0 5px #0b2839,0 0 0 7px #4fffe877,0 0 29px #12ddc3b5,inset 0 0 22px #34c6ff6b;text-shadow:0 0 14px #a4f8ff;transition:transform .16s,box-shadow .16s,filter .16s}
 .center .mic:not(:disabled):hover{transform:scale(1.075);filter:brightness(1.18);box-shadow:0 0 0 5px #0b2839,0 0 0 8px #5bffeacc,0 0 42px #12ddc3,inset 0 0 24px #34c6ff99}
 .center .mic:focus-visible{outline:3px solid #fff;outline-offset:10px}
-.center .mic:disabled{opacity:.76;filter:saturate(.72);cursor:not-allowed}
+.center .mic:disabled{opacity:.76;filter:saturate(.72);cursor:not-allowed;box-shadow:0 0 0 5px #0b2839,0 0 0 7px #B77935,0 0 29px #12ddc3b5,inset 0 0 22px #34c6ff6b}
 .center .transcript{flex:0 0 auto;min-height:clamp(60px,9vh,100px);max-height:30%;font-size:clamp(14px,1.9vh,20px);line-height:1.4;overflow:auto}
 .center .history{flex:1 1 0;min-height:0;max-height:none;overflow:auto;font-size:clamp(11px,1.4vh,14px)}
 @media (min-width:1160px) and (min-height:650px){
@@ -411,7 +411,7 @@
   border-radius:22px;
   position:absolute;
   left:50%;
-  top:-45px;
+  top:-39px;
   bottom:auto;
   transform:translateX(-50%);
   z-index:30;
