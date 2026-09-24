@@ -39,6 +39,6 @@ Current demo checkpoint: `4e4e320`, prior to documentation-only changes. First: 
 
 ## Reference asset
 
-Approved generated concept filename: `src/voice_authority/assets/voice-authority-v3-concept.png`.
-SHA-256: `f4ffadda33e97357d81df1e3ea5e31399e38731d5b3c48a1bd52681a521fb53a`.
+User-selected exact V3 image (1536 × 1024 PNG; no substitutes or regenerated variants). Filename: `src/voice_authority/assets/voice-authority-v3-concept.png`.
+SHA-256: `9b3817f695631daa3d0d03013e6a05679c1ea618dbc6ac7468a4f368a95a0a4c`.
 The image must be committed as a **design reference only**, never served as a substitute for the functional UI.
