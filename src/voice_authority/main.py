@@ -1,4 +1,7 @@
 import asyncio
+import subprocess
+from datetime import timedelta
+from threading import Lock
 """HTTP application boundary for the UCII Voice Authority Agent."""
 
 from voice_authority.demo_authority import DemoAuthority
@@ -178,6 +181,118 @@ async def microphone_worklet() -> FileResponse:
     )
 
 
+
+# Demo-only, single-process pending purchase-revocation ceremony.
+# No general-purpose revocation endpoint is exposed.
+PURCHASE_REVOKE_AUTHORITY_ID = "5d0d2fe7-26d7-4f8e-94ac-affe4fd8eb61"
+PURCHASE_REVOKE_HELPER = "/usr/local/sbin/ucii-voice-revoke-purchase"
+_purchase_revoke_lock = Lock()
+_pending_purchase_revoke = None
+
+
+class PurchaseRevokeConfirmation(BaseModel):
+    ceremony_id: str
+
+
+@app.post("/ucii/purchase/revoke/confirm")
+async def confirm_purchase_revoke(
+    request: PurchaseRevokeConfirmation,
+) -> dict[str, Any]:
+    """Confirm one pending voice request for purchase-only revocation."""
+    global _pending_purchase_revoke
+
+    now = datetime.now(timezone.utc)
+
+    with _purchase_revoke_lock:
+        pending = _pending_purchase_revoke
+
+        if (
+            pending is None
+            or pending["ceremony_id"] != request.ceremony_id
+            or pending["authority_id"] != PURCHASE_REVOKE_AUTHORITY_ID
+            or now >= pending["expires_at"]
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail="No matching pending purchase revocation",
+            )
+
+        # Consume before invoking the protected operation.
+        # A repeated click cannot execute it again.
+        _pending_purchase_revoke = None
+
+    def execute():
+        return subprocess.run(
+            ["sudo", "-n", PURCHASE_REVOKE_HELPER],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+
+    try:
+        result = await asyncio.to_thread(execute)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Protected purchase revocation unavailable",
+        ) from exc
+
+    if (
+        result.returncode != 0
+        or "RESULT: REVOKED" not in result.stdout
+        or (
+            "AUTHORITY_ID: " + PURCHASE_REVOKE_AUTHORITY_ID
+        ) not in result.stdout
+    ):
+        raise HTTPException(
+            status_code=503,
+            detail="Protected purchase revocation not verified",
+        )
+
+    async def post_revoke_check(operation: str) -> dict[str, Any]:
+        try:
+            return await voice_delegated_authority_check(
+                operation=operation,
+            )
+        except HTTPException as exc:
+            if exc.status_code != 503:
+                raise
+            detail = exc.detail
+            reason = (
+                detail.get("reason", "Live authority check unavailable")
+                if isinstance(detail, dict)
+                else str(detail)
+            )
+            return {
+                "status": "UNAVAILABLE",
+                "authorized": None,
+                "source": "UCII_UNAVAILABLE",
+                "reason": reason,
+            }
+
+    purchase, inspect = await asyncio.gather(
+        post_revoke_check("compute.purchase"),
+        post_revoke_check("compute.inspect"),
+    )
+
+    verified = (
+        purchase.get("source") == "UCII_LIVE"
+        and purchase.get("authorized") is False
+        and inspect.get("source") == "UCII_LIVE"
+        and inspect.get("authorized") is True
+    )
+
+    return {
+        "status": "REVOKED" if verified else "VERIFICATION_INCOMPLETE",
+        "verified": verified,
+        "authority_id": PURCHASE_REVOKE_AUTHORITY_ID,
+        "operation": "compute.purchase",
+        "purchase": purchase,
+        "inspect": inspect,
+    }
+
+
 @app.post("/proposals/assemblyai-tool")
 async def assemblyai_tool_proposal(
     request: AssemblyAIToolProposal,
@@ -209,6 +324,32 @@ async def assemblyai_tool_proposal(
         ) from exc
 
     result = asdict(proposal)
+
+    if request.tool_name == "propose_compute_revoke":
+        if (
+            proposal.operation != Operation.REVOKE
+            or proposal.target_identity_id
+            != "9df0ff8a-25d0-4340-be32-05e8263f1277"
+            or proposal.target_authority_id
+            != PURCHASE_REVOKE_AUTHORITY_ID
+        ):
+            raise HTTPException(
+                status_code=422,
+                detail="Only the fixed purchase delegation may be revoked",
+            )
+
+        global _pending_purchase_revoke
+
+        with _purchase_revoke_lock:
+            _pending_purchase_revoke = {
+                "ceremony_id": proposal.ceremony_id,
+                "authority_id": PURCHASE_REVOKE_AUTHORITY_ID,
+                "expires_at": (
+                    datetime.now(timezone.utc)
+                    + timedelta(minutes=5)
+                ),
+            }
+
     if proposal.operation in (Operation.GRANT, Operation.REVOKE):
         result["authorization_status"] = (
             "AWAITING_HUMAN_AUTHORIZATION"
@@ -401,6 +542,62 @@ async def voice_delegated_authority_check(
     }
 
 
+
+
+
+@app.post("/ucii/purchase/assess")
+async def voice_purchase_assessment(
+    quantity: int,
+) -> dict[str, Any]:
+    """Non-executing purchase assessment backed by live UCII authority."""
+    from decimal import Decimal
+
+    if isinstance(quantity, bool) or quantity < 1:
+        raise HTTPException(
+            status_code=422,
+            detail="Quantity must be a positive integer",
+        )
+
+    # This existing endpoint performs the real signer-backed UCII check.
+    authority = await voice_delegated_authority_check(
+        operation="compute.purchase",
+    )
+
+    if (
+        authority.get("source") != "UCII_LIVE"
+        or authority.get("operation") != "compute.purchase"
+    ):
+        raise HTTPException(
+            status_code=503,
+            detail="Live UCII authority could not be verified",
+        )
+
+    unit_price = Decimal("2.00")
+    budget = Decimal("10.00")
+    proposed_total = unit_price * quantity
+
+    if not authority["authorized"]:
+        status = "DENIED"
+        reason = "PURCHASE_AUTHORITY_DENIED"
+    elif proposed_total > budget:
+        status = "DENIED"
+        reason = "SPENDING_LIMIT_EXCEEDED"
+    else:
+        status = "AUTHORIZED"
+        reason = "WITHIN_SPENDING_LIMIT"
+
+    return {
+        "status": status,
+        "authorized": status == "AUTHORIZED",
+        "reason": reason,
+        "source": "UCII_LIVE",
+        "operation": "compute.purchase",
+        "quantity": quantity,
+        "unit_price_usd": str(unit_price),
+        "proposed_total_usd": str(proposed_total),
+        "spending_limit_usd": str(budget),
+        "purchase_executed": False,
+    }
 
 
 @app.get("/ucii/access/status")
