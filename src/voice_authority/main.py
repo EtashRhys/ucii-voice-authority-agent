@@ -184,7 +184,7 @@ async def microphone_worklet() -> FileResponse:
 
 # Demo-only, single-process pending purchase-revocation ceremony.
 # No general-purpose revocation endpoint is exposed.
-PURCHASE_REVOKE_AUTHORITY_ID = "9212feed-43ce-4c22-8296-971638f8b54e"
+PURCHASE_REVOKE_AUTHORITY_ID = "99ed6565-f4c7-4343-9d57-84e98a63ed89"
 PURCHASE_REVOKE_HELPER = "/usr/local/sbin/ucii-voice-revoke-purchase"
 _purchase_revoke_lock = Lock()
 _pending_purchase_revoke = None
@@ -517,20 +517,41 @@ async def voice_delegated_authority_check(
         signing_purpose=purpose,
     )
 
-    try:
-        decision = await check_purchase_authority(
-            ucii_base_url="http://127.0.0.1:8000",
-            binding=binding,
-            operation=operation,
-        )
-    except AuthorityCheckError:
+    decision = None
+
+    for attempt in range(1, 4):
+        try:
+            decision = await check_purchase_authority(
+                ucii_base_url="http://127.0.0.1:8000",
+                binding=binding,
+                operation=operation,
+            )
+            break
+        except AuthorityCheckError:
+            if attempt == 3:
+                raise HTTPException(
+                    status_code=503,
+                    detail={
+                        "status": "UNAVAILABLE",
+                        "authorized": False,
+                        "source": "UCII_UNAVAILABLE",
+                        "reason": (
+                            "Live authority check could not be completed "
+                            "after 3 attempts"
+                        ),
+                    },
+                )
+
+            await asyncio.sleep(0.25)
+
+    if decision is None:
         raise HTTPException(
             status_code=503,
             detail={
                 "status": "UNAVAILABLE",
                 "authorized": False,
                 "source": "UCII_UNAVAILABLE",
-                "reason": "Live authority check could not be completed",
+                "reason": "Live authority check produced no decision",
             },
         )
 

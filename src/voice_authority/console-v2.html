@@ -581,26 +581,125 @@ async function checkAuthority(){
 checkBackend();void Promise.all([checkAccess(),checkAuthority()]);$("earth").addEventListener("error",()=>{$("earth").style.display="none";evidence("Local Earth asset unavailable; serve this page from the Voice Authority app.")});
 function showTranscript(){set("live",partial||lastFinal||"Listening for your voice…")}
 
+let verifiedSpeechActive=false;
+let verifiedSpeechGeneration=0;
+
 function cancelVerifiedSpeech(){
+  verifiedSpeechGeneration+=1;
+  verifiedSpeechActive=false;
   if("speechSynthesis" in window)window.speechSynthesis.cancel();
 }
+
 function speakVerifiedDecision(message){
   if(!("speechSynthesis" in window)||
      !("SpeechSynthesisUtterance" in window))return;
+
   cancelVerifiedSpeech();
+
+  const generation=++verifiedSpeechGeneration;
   const utterance=new SpeechSynthesisUtterance(message);
+
+  verifiedSpeechActive=true;
+
   utterance.lang="en-US";
   utterance.rate=1;
-  utterance.onstart=()=>evidence("VOICE OUTPUT: speech started");
-  utterance.onend=()=>evidence("VOICE OUTPUT: speech completed");
-  utterance.onerror=e=>evidence(
-    "VOICE OUTPUT: speech error: "+(e.error||"unknown")
-  );
+
+  utterance.onstart=()=>{
+    if(generation!==verifiedSpeechGeneration)return;
+    verifiedSpeechActive=true;
+    evidence("VOICE OUTPUT: speech started; microphone transmission gated");
+  };
+
+  utterance.onend=()=>{
+    if(generation!==verifiedSpeechGeneration)return;
+    verifiedSpeechActive=false;
+    evidence("VOICE OUTPUT: speech completed; microphone transmission resumed");
+  };
+
+  utterance.onerror=e=>{
+    if(generation!==verifiedSpeechGeneration)return;
+    verifiedSpeechActive=false;
+    evidence(
+      "VOICE OUTPUT: speech error: "+(e.error||"unknown")+
+      "; microphone transmission resumed"
+    );
+  };
+
   window.speechSynthesis.speak(utterance);
 }
+async function fetchLiveAuthority(operation){
+  let lastResponse=null;
+  let lastResult=null;
+
+  for(let attempt=1;attempt<=3;attempt++){
+    try{
+      const response=await fetch(
+        "/ucii/delegated/check?operation="+encodeURIComponent(operation),
+        {method:"POST",cache:"no-store"}
+      );
+
+      let result=null;
+      try{
+        result=await response.json();
+      }catch(_){}
+
+      lastResponse=response;
+      lastResult=result;
+
+      const validLiveDecision=
+        response.ok &&
+        result &&
+        result.source==="UCII_LIVE" &&
+        result.operation===operation &&
+        (
+          (result.status==="AUTHORIZED" &&
+           result.authorized===true) ||
+          (result.status==="DENIED" &&
+           result.authorized===false)
+        );
+
+      if(validLiveDecision){
+        return {response,result};
+      }
+
+      const unavailable=
+        !response.ok ||
+        !result ||
+        result.source==="UCII_UNAVAILABLE" ||
+        result.status==="UNAVAILABLE";
+
+      if(!unavailable){
+        return {response,result};
+      }
+
+      if(attempt<3){
+        evidence(
+          "UCII LIVE CHECK: "+operation+
+          " unavailable; retry "+(attempt+1)+"/3"
+        );
+        await new Promise(resolve=>setTimeout(resolve,250));
+      }
+    }catch(error){
+      if(attempt===3)throw error;
+
+      evidence(
+        "UCII LIVE CHECK: "+operation+
+        " request failed; retry "+(attempt+1)+"/3"
+      );
+
+      await new Promise(resolve=>setTimeout(resolve,250));
+    }
+  }
+
+  return {
+    response:lastResponse,
+    result:lastResult
+  };
+}
+
 function send(obj){if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringify(obj))}
-let sessionPrompt="You are the conversational interface for UCII Voice Authority. Understand spoken English and respond exclusively in English. Voice interpretation is not authorization. For inspection, call propose_compute_inspect with empty arguments. When asked whether we have authority to purchase, call check_compute_purchase_authority with empty arguments. Do not answer authority-status questions from memory. For every explicit request to purchase compute, you MUST call propose_compute_purchase with the requested integer quantity and unit compute. Do not silently finish or answer without calling the purchase tool. Do not claim a purchase occurred. Wait for the verified UCII assessment before reporting its decision. When explicitly asked to grant compute inspection, call propose_compute_grant with operation compute.inspect. When explicitly asked to revoke compute purchasing authority, you MUST call propose_compute_revoke using authority_id 9212feed-43ce-4c22-8296-971638f8b54e. Never ask the user for a UUID. This creates a proposal only. Tell the user to click REVOKE PURCHASE for manual confirmation. Do not claim success until UCII verifies revocation. Grant and revoke tools create proposals only; they do not authorize or change authority. Keep replies brief.";
-const inspectTool={type:"function",name:"propose_compute_inspect",description:"Propose read-only inspection of compute authority. Does not grant authority or execute anything.",parameters:{type:"object",properties:{},required:[],additionalProperties:false}};
+let sessionPrompt="You are the conversational interface for UCII Voice Authority. Understand spoken English and respond exclusively in English. Voice interpretation is not authorization. When asked whether we have authority to inspect compute, call check_compute_inspect_authority with empty arguments. When asked whether we have authority to purchase, call check_compute_purchase_authority with empty arguments. Do not answer authority-status questions from memory. For every explicit request to purchase compute, you MUST call propose_compute_purchase with the requested integer quantity and unit compute. Do not silently finish or answer without calling the purchase tool. Do not claim a purchase occurred. Wait for the verified UCII assessment before reporting its decision. When explicitly asked to grant compute inspection, call propose_compute_grant with operation compute.inspect. When explicitly asked to revoke compute purchasing authority, you MUST call propose_compute_revoke using authority_id 99ed6565-f4c7-4343-9d57-84e98a63ed89. Never ask the user for a UUID. This creates a proposal only. Tell the user to click REVOKE PURCHASE for manual confirmation. Do not claim success until UCII verifies revocation. Grant and revoke tools create proposals only; they do not authorize or change authority. Keep replies brief.";
+const inspectTool={type:"function",name:"check_compute_inspect_authority",description:"Use when asked whether we have authority to inspect compute. Checks live UCII authority without executing anything.",parameters:{type:"object",properties:{},required:[],additionalProperties:false}};
 const tool={type:"function",name:"propose_compute_purchase",description:"Propose a bounded compute purchase; does not authorize or execute.",parameters:{type:"object",properties:{quantity:{type:"integer",minimum:1},unit:{type:"string",enum:["compute"]}},required:["quantity","unit"],additionalProperties:false}};
 
 const grantTool={
@@ -631,11 +730,11 @@ const purchaseAuthorityTool={
 const revokeTool={
   type:"function",
   name:"propose_compute_revoke",
-  description:"Propose revoking only the fixed compute.purchase delegation 9212feed-43ce-4c22-8296-971638f8b54e. Never ask the user for a UUID. Does not execute revocation.",
+  description:"Propose revoking only the fixed compute.purchase delegation 99ed6565-f4c7-4343-9d57-84e98a63ed89. Never ask the user for a UUID. Does not execute revocation.",
   parameters:{
     type:"object",
     properties:{
-      authority_id:{type:"string",enum:["9212feed-43ce-4c22-8296-971638f8b54e"],description:"Fixed compute.purchase delegation."}
+      authority_id:{type:"string",enum:["99ed6565-f4c7-4343-9d57-84e98a63ed89"],description:"Fixed compute.purchase delegation."}
     },
     required:["authority_id"],
     additionalProperties:false
@@ -646,16 +745,17 @@ let pendingToolResult=null;
 
 function queueToolResult(callId,result){
   if(typeof callId!=="string"||!callId){
-    evidence("ASSEMBLYAI: tool result missing call_id; result not queued");
+    evidence("ASSEMBLYAI: tool result missing call_id; result not sent");
     return;
   }
 
-  pendingToolResult={
+  send({
+    type:"tool.result",
     call_id:callId,
     result:JSON.stringify(result)
-  };
+  });
 
-  evidence("ASSEMBLYAI: tool result queued for "+callId);
+  evidence("ASSEMBLYAI: tool.result sent immediately for "+callId);
 }
 
 function discardPendingToolResult(reason){
@@ -712,6 +812,68 @@ async function validateProposal(m){
   const expectedSession=sessionId;
   const expectedTurn=turnId;
 
+  if(m.name==="check_compute_inspect_authority"){
+    if(Object.keys(m.arguments).length!==0){
+      evidence("Inspection authority inquiry rejected: unexpected arguments.");
+      return;
+    }
+
+    set("proposal","Checking live UCII inspection authority...");
+
+      try{
+        const liveCheck=await fetchLiveAuthority(
+          "compute.inspect"
+        );
+        const check=liveCheck.response;
+        const result=liveCheck.result;
+
+        if(!check||!result)
+          throw Error("UCII inspection check unavailable");
+
+        if(sessionId!==expectedSession||
+           turnId!==expectedTurn)return;
+
+        const consistent=
+          result.operation==="compute.inspect"&&
+          ((result.status==="AUTHORIZED"&&
+            result.authorized===true)||
+           (result.status==="DENIED"&&
+            result.authorized===false));
+
+        if(check.ok&&consistent){
+          set("proposal",
+              "LIVE UCII AUTHORITY CHECK\\n"
+              +"Operation: compute.inspect\\n"
+              +"Result: "+result.status);
+          const verifiedMessage=result.authorized===true?"UCII confirms that compute inspection is authorized. No execution occurred.":"UCII confirms that compute inspection is denied. No execution occurred.";
+          set("agent",verifiedMessage);
+          queueToolResult(toolCallId,{
+            status:result.status,
+            authorized:result.authorized,
+            operation:result.operation,
+            source:result.source||"UCII_LIVE"
+          });
+          speakVerifiedDecision(verifiedMessage);
+          evidence("Live UCII compute.inspect decision: "
+                   +result.status+". No execution performed.");
+        }else{
+          set("proposal","UCII AUTHORITY CHECK FAILED");
+          set("agent","UCII authority could not be verified. No execution occurred.");
+          evidence("UCII inspection returned an invalid response");
+        }
+      }catch(_){
+        if(sessionId===expectedSession&&
+           turnId===expectedTurn){
+          set("proposal","UCII AUTHORITY CHECK FAILED");
+          set("agent","UCII authority check is unavailable. No execution occurred.");
+          evidence("UCII inspection request failed");
+        }
+      }
+      return;
+    }
+
+
+
   if(m.name==="check_compute_purchase_authority"){
     if(Object.keys(m.arguments).length!==0){
       evidence("Purchase authority inquiry rejected: unexpected arguments.");
@@ -721,13 +883,11 @@ async function validateProposal(m){
     set("proposal","Checking live UCII purchasing authority...");
 
     try{
-      const response=await fetch(
-        "/ucii/delegated/check?operation=compute.purchase",
-        {method:"POST",cache:"no-store"}
+      const {response,result}=await fetchLiveAuthority(
+        "compute.purchase"
       );
-      if(!response.ok)throw Error("UCII authority check failed");
-
-      const result=await response.json();
+      if(!response||!response.ok||!result)
+        throw Error("UCII authority check failed");
 
       if(sessionId!==expectedSession ||
          turnId!==expectedTurn)return;
@@ -802,75 +962,6 @@ async function validateProposal(m){
        p.session_id!==expectedSession||
        p.source_turn_reference!==expectedTurn)return;
 
-    if(m.name==="propose_compute_inspect"&&
-       p.operation==="INSPECT"&&
-       p.consequence_class==="LOW"&&
-       p.requested_scope?.operation==="compute.inspect"&&
-       p.requested_parameters&&
-       typeof p.requested_parameters==="object"&&
-       !Array.isArray(p.requested_parameters)&&
-       Object.keys(p.requested_parameters).length===0){
-
-      set("proposal",
-          "VALIDATED PROPOSAL\nOperation: compute.inspect\n"
-          +"Consequence: LOW\nChecking live UCII authority...");
-
-      evidence("Structured compute.inspect proposal validated. "
-               +"No authority granted or execution performed.");
-
-      try{
-        const check=await fetch(
-          "/ucii/delegated/check?operation=compute.inspect",
-          {method:"POST",cache:"no-store"}
-        );
-        const result=await check.json();
-
-        if(sessionId!==expectedSession||
-           turnId!==expectedTurn)return;
-
-        const consistent=
-          result.operation==="compute.inspect"&&
-          ((result.status==="AUTHORIZED"&&
-            result.authorized===true)||
-           (result.status==="DENIED"&&
-            result.authorized===false));
-
-        if(check.ok&&consistent){
-          set("proposal",
-              "VALIDATED PROPOSAL\nOperation: compute.inspect\n"
-              +"Consequence: LOW\nUCII authority: "+result.status);
-          const verifiedMessage=result.authorized===true?"UCII confirms that compute inspection is authorized. No execution occurred.":"UCII confirms that compute inspection is denied. No execution occurred.";
-          set("agent",verifiedMessage);
-          queueToolResult(toolCallId,{
-            status:result.status,
-            authorized:result.authorized,
-            operation:result.operation,
-            source:result.source||"UCII_LIVE"
-          });
-          speakVerifiedDecision(verifiedMessage);
-          evidence("Live UCII compute.inspect decision: "
-                   +result.status+". No execution performed.");
-        }else{
-          set("proposal",
-              "VALIDATED PROPOSAL\nOperation: compute.inspect\n"
-              +"UCII authority check unavailable");
-          set("agent","UCII authority could not be verified. No execution occurred.");
-          evidence("UCII inspection returned an invalid response");
-        }
-      }catch(_){
-        if(sessionId===expectedSession&&
-           turnId===expectedTurn){
-          set("proposal",
-              "VALIDATED PROPOSAL\nOperation: compute.inspect\n"
-              +"UCII authority check unavailable");
-          set("agent","UCII authority check is unavailable. No execution occurred.");
-          evidence("UCII inspection request failed");
-        }
-      }
-      return;
-    }
-
-
     if(m.name==="propose_compute_grant"&&
        p.operation==="GRANT"&&
        p.consequence_class==="SENSITIVE"&&
@@ -899,7 +990,7 @@ async function validateProposal(m){
        Object.keys(p.requested_parameters).length===0){
 
       if (
-        p.target_authority_id !== "9212feed-43ce-4c22-8296-971638f8b54e" ||
+        p.target_authority_id !== "99ed6565-f4c7-4343-9d57-84e98a63ed89" ||
         typeof p.ceremony_id !== "string" ||
         !p.ceremony_id
       ) {
@@ -1025,7 +1116,7 @@ async function validateProposal(m){
   }
 }
 function resample(samples,inputRate){const merged=new Float32Array(resampleBuffer.length+samples.length);merged.set(resampleBuffer);merged.set(samples,resampleBuffer.length);const step=inputRate/RATE,out=[];while(resamplePosition+1<merged.length){const i=Math.floor(resamplePosition),f=resamplePosition-i;out.push(merged[i]*(1-f)+merged[i+1]*f);resamplePosition+=step}const retain=Math.floor(resamplePosition);resampleBuffer=merged.slice(retain);resamplePosition-=retain;return out}
-function audioFrame(samples,inputRate){draw(samples);if(!sessionId||socket?.readyState!==WebSocket.OPEN)return;const floats=resample(samples,inputRate),pcm=new Int16Array(floats.length);for(let i=0;i<floats.length;i++){const x=Math.max(-1,Math.min(1,floats[i]));pcm[i]=Math.round(x*(x<0?32768:32767))}const joined=new Int16Array(queue.length+pcm.length);joined.set(queue);joined.set(pcm,queue.length);let at=0;while(at+FRAME<=joined.length){const frame=joined.subarray(at,at+FRAME);const bytes=new Uint8Array(frame.buffer,frame.byteOffset,frame.byteLength);let bin="";for(const b of bytes)bin+=String.fromCharCode(b);send({type:"input.audio",audio:btoa(bin)});frames++;set("frames",frames);at+=FRAME}queue=joined.slice(at)}
+function audioFrame(samples,inputRate){draw(samples);if(verifiedSpeechActive)return;if(!sessionId||socket?.readyState!==WebSocket.OPEN)return;const floats=resample(samples,inputRate),pcm=new Int16Array(floats.length);for(let i=0;i<floats.length;i++){const x=Math.max(-1,Math.min(1,floats[i]));pcm[i]=Math.round(x*(x<0?32768:32767))}const joined=new Int16Array(queue.length+pcm.length);joined.set(queue);joined.set(pcm,queue.length);let at=0;while(at+FRAME<=joined.length){const frame=joined.subarray(at,at+FRAME);const bytes=new Uint8Array(frame.buffer,frame.byteOffset,frame.byteLength);let bin="";for(const b of bytes)bin+=String.fromCharCode(b);send({type:"input.audio",audio:btoa(bin)});frames++;set("frames",frames);at+=FRAME}queue=joined.slice(at)}
 function draw(samples){for(const id of ["wave","wave2"]){const c=$(id),ctx=c.getContext("2d"),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);ctx.strokeStyle="#52b6ff";ctx.lineWidth=2;ctx.beginPath();for(let i=0;i<w;i+=4){const v=samples[Math.floor(i/w*samples.length)]||0;ctx.moveTo(i,h/2-v*h*.42);ctx.lineTo(i,h/2+v*h*.42)}ctx.stroke()}}
 async function startMic(){if(!sessionId)return;try{stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true},video:false});context=new AudioContext();await context.audioWorklet.addModule("/microphone-worklet.js");source=context.createMediaStreamSource(stream);worklet=new AudioWorkletNode(context,"microphone-capture-processor");worklet.port.onmessage=e=>{if(e.data instanceof Float32Array)audioFrame(e.data,context.sampleRate)};source.connect(worklet);queue=new Int16Array(0);resampleBuffer=new Float32Array(0);resamplePosition=0;set("mic-status","LISTENING");set("speech-hero","LISTENING");$("mic").style.boxShadow="0 0 30px #00e3b8";$("mic").title="Stop microphone"}catch(e){await stopMic();evidence("Microphone start failed: "+(e.message||"unknown"))}}
 async function stopMic(){if(worklet){worklet.port.onmessage=null;worklet.disconnect();worklet=null}if(source){source.disconnect();source=null}if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}if(context){const c=context;context=null;if(c.state!=="closed")await c.close()}queue=new Int16Array(0);resampleBuffer=new Float32Array(0);resamplePosition=0;set("mic-status","MIC OFF");set("speech-hero","IDLE");$("mic").style.boxShadow="";$("mic").title="Start microphone"}
@@ -1459,7 +1550,7 @@ window.addEventListener("pagehide",()=>{if(stream)stream.getTracks().forEach(t=>
 (() => {
   const output = document.getElementById("liveAuthorityResult");
   const purchaseId =
-    "9212feed-43ce-4c22-8296-971638f8b54e";
+    "99ed6565-f4c7-4343-9d57-84e98a63ed89";
 
   async function check(operation) {
     const response = await fetch(
@@ -1507,7 +1598,7 @@ window.addEventListener("pagehide",()=>{if(stream)stream.getTracks().forEach(t=>
 
       if (
         !pending ||
-        pending.authority_id !== "9212feed-43ce-4c22-8296-971638f8b54e" ||
+        pending.authority_id !== "99ed6565-f4c7-4343-9d57-84e98a63ed89" ||
         !pending.ceremony_id ||
         Date.now() - pending.created_at >= 300000
       ) {
