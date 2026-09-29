@@ -599,7 +599,7 @@ function speakVerifiedDecision(message){
   window.speechSynthesis.speak(utterance);
 }
 function send(obj){if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringify(obj))}
-let sessionPrompt="You are the conversational interface for UCII Voice Authority. Understand spoken English and respond exclusively in English. Voice interpretation is not authorization. For inspection, call propose_compute_inspect with empty arguments. When asked whether we have authority to purchase, call check_compute_purchase_authority with empty arguments. Do not answer authority-status questions from memory. For every explicit request to purchase compute, you MUST call propose_compute_purchase with the requested integer quantity and unit compute. Do not silently finish or answer without calling the purchase tool. Do not claim a purchase occurred. Wait for the verified UCII assessment before reporting its decision. When explicitly asked to grant compute inspection, call propose_compute_grant with operation compute.inspect. When explicitly asked to revoke compute purchasing authority, you MUST call propose_compute_revoke using authority_id 5d0d2fe7-26d7-4f8e-94ac-affe4fd8eb61. Never ask the user for a UUID. This creates a proposal only. Tell the user to click REVOKE PURCHASE for manual confirmation. Do not claim success until UCII verifies revocation. Grant and revoke tools create proposals only; they do not authorize or change authority. Keep replies brief.";
+let sessionPrompt="You are the conversational interface for UCII Voice Authority. Understand spoken English and respond exclusively in English. Voice interpretation is not authorization. For inspection, call propose_compute_inspect with empty arguments. When asked whether we have authority to purchase, call check_compute_purchase_authority with empty arguments. Do not answer authority-status questions from memory. For every explicit request to purchase compute, you MUST call propose_compute_purchase with the requested integer quantity and unit compute. Do not silently finish or answer without calling the purchase tool. Do not claim a purchase occurred. Wait for the verified UCII assessment before reporting its decision. When explicitly asked to grant compute inspection, call propose_compute_grant with operation compute.inspect. When explicitly asked to revoke compute purchasing authority, you MUST call propose_compute_revoke using authority_id 9212feed-43ce-4c22-8296-971638f8b54e. Never ask the user for a UUID. This creates a proposal only. Tell the user to click REVOKE PURCHASE for manual confirmation. Do not claim success until UCII verifies revocation. Grant and revoke tools create proposals only; they do not authorize or change authority. Keep replies brief.";
 const inspectTool={type:"function",name:"propose_compute_inspect",description:"Propose read-only inspection of compute authority. Does not grant authority or execute anything.",parameters:{type:"object",properties:{},required:[],additionalProperties:false}};
 const tool={type:"function",name:"propose_compute_purchase",description:"Propose a bounded compute purchase; does not authorize or execute.",parameters:{type:"object",properties:{quantity:{type:"integer",minimum:1},unit:{type:"string",enum:["compute"]}},required:["quantity","unit"],additionalProperties:false}};
 
@@ -631,11 +631,11 @@ const purchaseAuthorityTool={
 const revokeTool={
   type:"function",
   name:"propose_compute_revoke",
-  description:"Propose revoking only the fixed compute.purchase delegation 5d0d2fe7-26d7-4f8e-94ac-affe4fd8eb61. Never ask the user for a UUID. Does not execute revocation.",
+  description:"Propose revoking only the fixed compute.purchase delegation 9212feed-43ce-4c22-8296-971638f8b54e. Never ask the user for a UUID. Does not execute revocation.",
   parameters:{
     type:"object",
     properties:{
-      authority_id:{type:"string",enum:["5d0d2fe7-26d7-4f8e-94ac-affe4fd8eb61"],description:"Fixed compute.purchase delegation."}
+      authority_id:{type:"string",enum:["9212feed-43ce-4c22-8296-971638f8b54e"],description:"Fixed compute.purchase delegation."}
     },
     required:["authority_id"],
     additionalProperties:false
@@ -899,7 +899,7 @@ async function validateProposal(m){
        Object.keys(p.requested_parameters).length===0){
 
       if (
-        p.target_authority_id !== "5d0d2fe7-26d7-4f8e-94ac-affe4fd8eb61" ||
+        p.target_authority_id !== "9212feed-43ce-4c22-8296-971638f8b54e" ||
         typeof p.ceremony_id !== "string" ||
         !p.ceremony_id
       ) {
@@ -1459,7 +1459,7 @@ window.addEventListener("pagehide",()=>{if(stream)stream.getTracks().forEach(t=>
 (() => {
   const output = document.getElementById("liveAuthorityResult");
   const purchaseId =
-    "5d0d2fe7-26d7-4f8e-94ac-affe4fd8eb61";
+    "9212feed-43ce-4c22-8296-971638f8b54e";
 
   async function check(operation) {
     const response = await fetch(
@@ -1507,7 +1507,7 @@ window.addEventListener("pagehide",()=>{if(stream)stream.getTracks().forEach(t=>
 
       if (
         !pending ||
-        pending.authority_id !== "5d0d2fe7-26d7-4f8e-94ac-affe4fd8eb61" ||
+        pending.authority_id !== "9212feed-43ce-4c22-8296-971638f8b54e" ||
         !pending.ceremony_id ||
         Date.now() - pending.created_at >= 300000
       ) {

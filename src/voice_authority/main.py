@@ -184,7 +184,7 @@ async def microphone_worklet() -> FileResponse:
 
 # Demo-only, single-process pending purchase-revocation ceremony.
 # No general-purpose revocation endpoint is exposed.
-PURCHASE_REVOKE_AUTHORITY_ID = "5d0d2fe7-26d7-4f8e-94ac-affe4fd8eb61"
+PURCHASE_REVOKE_AUTHORITY_ID = "9212feed-43ce-4c22-8296-971638f8b54e"
 PURCHASE_REVOKE_HELPER = "/usr/local/sbin/ucii-voice-revoke-purchase"
 _purchase_revoke_lock = Lock()
 _pending_purchase_revoke = None
