@@ -1,5 +1,14 @@
 # UCII Voice Authority Agent — Project Status
 
+> **HISTORICAL DEVELOPMENT CHECKPOINT — SUPERSEDED BY THE FINAL HACKATHON BUILD**
+>
+> This document records the project's September 20, 2026 development state and is preserved as engineering history. Statements below describing blockers, remaining Voice integration work, or an incomplete final demonstration do **not** describe the final AssemblyAI hackathon submission.
+>
+> The final recorded demo uses real AssemblyAI voice interaction and live UCII authority checks. It demonstrates independently authorized `compute.purchase` and `compute.inspect` operations, human-directed revocation of purchase authority, a fresh post-revocation `compute.purchase` result of `DENIED`, and continued `compute.inspect` authorization for the same Voice identity.
+>
+> See [`../README.md`](../README.md) for the final judge-facing project description and live application.
+
+
 **Status date:** September 20, 2026
 
 **Purpose:** This is the current project-status reference for Voice Authority. Use this instead of the historical build timeline when answering what has been completed, what is blocked, and what remains.
