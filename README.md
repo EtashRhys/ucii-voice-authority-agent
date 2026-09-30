@@ -1,67 +1,152 @@
 # UCII Voice Authority Agent
 
-A UCII-governed voice agent using AssemblyAI for real-time voice interaction with cryptographic identity, bounded delegated authority, revocation, and verifiable execution provenance.
+> **Capability is not authority.**
 
-## Core idea
+A real-time AssemblyAI voice agent governed by UCII cryptographic identity and externally enforceable delegated authority.
 
-The project demonstrates that understanding a spoken request is not the same thing as being authorized to execute it.
+**Live application:** https://voice.ucii.sportgen-ai.com/console-v2
+
+## What it does
+
+The voice agent can understand a request, reason about it, and propose an action. It does **not** decide for itself whether it has permission to act. UCII independently answers that question.
+
+The final hackathon demonstration uses real AssemblyAI voice interaction and live UCII authority checks for two independent operations:
+
+- `compute.purchase`
+- `compute.inspect`
+
+The demonstrated authority sequence is:
+
+```text
+compute.inspect   -> AUTHORIZED
+compute.purchase  -> AUTHORIZED
+human revokes purchase authority
+compute.purchase  -> DENIED
+compute.inspect   -> AUTHORIZED
+```
+
+The same Voice identity remains intact. Revoking one delegated capability does not destroy the identity or remove unrelated authority.
+
+**Identity persists. Authority changes.**
+
+## Why this matters
+
+AI agents increasingly have the technical capability to call tools and APIs, access infrastructure, spend money, interact with enterprise systems, and control devices or robots.
+
+Technical capability should not automatically create permission.
+
+UCII Voice Authority separates:
+
+**Voice != Intent != Identity != Authority != Execution**
+
+The conversational model may understand and propose. UCII remains the external authority source.
+
+## Architecture
 
 ```text
 Human Voice
-   ↓
+   |
+   v
 AssemblyAI Voice Agent
-   ↓
-Structured Proposed Action
-   ↓
-UCII Identity + Authority Gateway
-   ↓
-ALLOW / DENY
-   ↓
-Deterministic Tool Executor
-   ↓
-UCII Provenance
-   ↓
-Spoken Response + Visual Proof
+   |
+   v
+Structured Tool / Authority Request
+   |
+   v
+Voice Authority Application
+   |
+   v
+UCII Cryptographic Identity + Authority
+   |
+   +--> AUTHORIZED
+   |
+   +--> DENIED
+   |
+   v
+Verified Voice Response + Visual Proof
 ```
 
-## Security model
+### AssemblyAI
 
-The project keeps these domains separate:
+AssemblyAI provides the real-time conversational layer used by the project, including microphone interaction, live transcript handling, conversational voice responses, and structured tool calling.
 
-**Voice ≠ Intent ≠ Identity ≠ Authority ≠ Execution**
+### UCII
 
-The voice layer may interpret a request and propose an action, but it does not create execution authority. UCII remains the independent trust and authority layer.
+UCII provides the independent trust and authority layer: cryptographic AI-agent identity, protected credentials, delegated operation authority, fresh authorization checks, revocation, and authority-lifecycle evidence.
 
-## Primary demo
+The AssemblyAI/LLM layer does not manufacture UCII authority.
 
-1. A user speaks a consequential request.
-2. AssemblyAI interprets the request and produces a structured proposed action.
-3. UCII verifies the agent identity.
-4. The agent has no matching delegated authority, so execution is denied.
-5. A human grants tightly bounded authority for the exact action class, amount/scope, and expiry.
-6. The same spoken request is repeated and succeeds.
-7. The delegated authority is revoked.
-8. The same cryptographically verified agent attempts the same action again and is denied.
+## Security principle
 
-The identity remains valid throughout. Only the authority state changes.
+A successful voice interaction proves that the system understood the human. It does **not** prove that the agent is authorized.
 
-## Design principle
+A verified identity proves who the agent is. It does **not** prove that the agent currently has permission for every operation.
 
-**Capability is not authority.**
+Authority is separately delegated and separately revocable. The application therefore checks live UCII authority rather than treating model output, natural language, or tool availability as permission.
 
-The LLM/voice agent can propose. UCII decides whether the proposal is authorized to become a real action.
+## Granular revocation
 
-## Planned stack
+Before revocation:
 
-- AssemblyAI Voice Agent API
-- Browser microphone client
-- Small Python/FastAPI application backend
-- UCII public SDK/API boundary
-- Deterministic consequential tool executor
-- Compact visual status panel for identity, authority, decision, and provenance
+```text
+compute.purchase -> AUTHORIZED
+compute.inspect  -> AUTHORIZED
+```
 
-## Repository purpose
+After the human revokes purchase authority:
 
-This repository is the dedicated competition and reference implementation for the UCII voice-authority interaction surface. It is intentionally separate from the UCII core repository and from other environment-specific adapters such as Alexa+.
+```text
+compute.purchase -> DENIED
+compute.inspect  -> AUTHORIZED
+```
 
-See `docs/` for the detailed project contract, architecture, implementation plan, judging strategy, demo plan, and submission checklist.
+Only the targeted delegated capability is removed.
+
+## Technology
+
+- AssemblyAI Voice Agent
+- Python / FastAPI
+- Browser microphone and audio client
+- Structured tool calls
+- REST APIs
+- UCII cryptographic identity and authority infrastructure
+- ML-DSA-65 protected signing identity
+- Protected controller/lifecycle authority
+- Live delegated-authority evaluation and revocation
+
+## Repository structure
+
+```text
+src/voice_authority/
+    main.py
+    console-v2.html
+    ucii_authority_client.py
+    protected_signer_client.py
+    structured_proposal.py
+    voice_lifecycle_cli.py
+
+docs/
+    architecture.md
+    assemblyai-technical-contract.md
+    demo-script.md
+    human-authority-ceremony-contract.md
+    judging-strategy.md
+    submission-checklist.md
+    voice-authority-project-status.md
+```
+
+## Core design rule
+
+> **The LLM can propose. UCII decides whether the proposal is authorized.**
+
+This allows an autonomous system to retain its identity and technical capabilities while humans and external policy control the specific authority it possesses.
+
+## Broader application
+
+The same architecture can govern autonomous systems operating payments, APIs, cloud infrastructure, enterprise services, robots, devices, machine-to-machine services, and other AI agents.
+
+The goal is not to make an AI incapable of acting. The goal is to let it act **without giving it unlimited authority**.
+
+---
+
+**UCII Voice Authority Agent — AssemblyAI Voice Agent Hackathon, September 2026**
